@@ -157,13 +157,13 @@
     <header>Quản Lý Tiệm Bánh</header>
 
     <div class="nav-container">
-        <button class="nav-btn active" onclick="switchTab('home', this)">1. Trang chủ</button>
-        <button class="nav-btn" onclick="switchTab('create', this)">2. Tạo đơn</button>
-        <button class="nav-btn" onclick="switchTab('list', this)">3. Danh sách đơn</button>
-        <button class="nav-btn" onclick="switchTab('calendar', this)">4. Lịch lấy bánh</button>
-        <button class="nav-btn" onclick="switchTab('report', this)">5. Báo cáo</button>
-        <button class="nav-btn" onclick="switchTab('export', this)">6. Xuất Excel</button>
-        <button class="nav-btn" onclick="switchTab('settings', this)">7. Cài đặt</button>
+        <button class="nav-btn active" data-target="home">1. Trang chủ</button>
+        <button class="nav-btn" data-target="create">2. Tạo đơn</button>
+        <button class="nav-btn" data-target="list">3. Danh sách đơn</button>
+        <button class="nav-btn" data-target="calendar">4. Lịch lấy bánh</button>
+        <button class="nav-btn" data-target="report">5. Báo cáo</button>
+        <button class="nav-btn" data-target="export">6. Xuất Excel</button>
+        <button class="nav-btn" data-target="settings">7. Cài đặt</button>
     </div>
 
     <div class="container">
@@ -345,12 +345,32 @@
 
         let ordersData = {};
 
-        // Đổi tab
-        function switchTab(tabId, btn) {
+        // Xử lý chuyển tab an toàn bằng sự kiện DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const navButtons = document.querySelectorAll('.nav-btn');
+            navButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetTabId = btn.getAttribute('data-target');
+                    
+                    // Xóa active tất cả các tab và nút
+                    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+                    
+                    // Thêm active cho tab và nút được chọn
+                    document.getElementById(targetTabId).classList.add('active');
+                    btn.classList.add('active');
+                });
+            });
+        });
+
+        // Hàm chuyển tab dùng chung từ bên ngoài (nếu cần)
+        function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            
             document.getElementById(tabId).classList.add('active');
-            btn.classList.add('active');
+            const targetBtn = document.querySelector(`.nav-btn[data-target="${tabId}"]`);
+            if (targetBtn) targetBtn.classList.add('active');
         }
 
         // Tự động tính hiển thị nhân 1000 cho các ô nhập tiền
@@ -374,3 +394,205 @@
             renderOrderTable();
             renderCalendar();
             renderReport();
+        });
+
+        // Lưu hoặc Cập nhật đơn hàng
+        function saveOrder(e) {
+            e.preventDefault();
+            const id = document.getElementById('orderId').value;
+            
+            const rawCakePrice = Number(document.getElementById('cakePrice').value) || 0;
+            const rawOtherFee = Number(document.getElementById('otherFee').value) || 0;
+            const rawDeposit = Number(document.getElementById('deposit').value) || 0;
+
+            const orderData = {
+                cusName: document.getElementById('cusName').value,
+                cusPhone: document.getElementById('cusPhone').value,
+                cakeSize: document.getElementById('cakeSize').value,
+                cakeContent: document.getElementById('cakeContent').value,
+                cakePrice: rawCakePrice * 1000,
+                otherFee: rawOtherFee * 1000,
+                deposit: rawDeposit * 1000,
+                pickupDate: document.getElementById('pickupDate').value,
+                pickupTimeOnly: document.getElementById('pickupTimeOnly').value,
+                note: document.getElementById('note').value,
+                orderStatus: document.getElementById('orderStatus').value
+            };
+
+            if (id) {
+                database.ref('orders/' + id).set(orderData, (error) => {
+                    if (!error) {
+                        alert('Cập nhật đơn thành công!');
+                        resetForm();
+                        switchTab('list');
+                    }
+                });
+            } else {
+                database.ref('orders').push(orderData, (error) => {
+                    if (!error) {
+                        alert('Tạo đơn mới thành công!');
+                        resetForm();
+                        switchTab('list');
+                    }
+                });
+            }
+        }
+
+        // Cập nhật Trang chủ
+        function updateDashboard() {
+            const keys = Object.keys(ordersData);
+            document.getElementById('totalOrders').innerText = keys.length;
+            let totalRev = 0;
+            keys.forEach(k => {
+                const item = ordersData[k];
+                if (item.orderStatus !== 'Đã hủy') {
+                    let price = Number(item.cakePrice || 0) + Number(item.otherFee || 0);
+                    totalRev += price;
+                }
+            });
+            document.getElementById('totalRevenue').innerText = totalRev.toLocaleString('vi-VN') + ' đ';
+        }
+
+        // Render Danh sách đơn hàng
+        function renderOrderTable() {
+            const tbody = document.getElementById('orderTableBody');
+            tbody.innerHTML = '';
+            const keys = Object.keys(ordersData);
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">Chưa có đơn hàng nào</td></tr>`;
+                return;
+            }
+            keys.forEach(k => {
+                const item = ordersData[k];
+                let cakeP = Number(item.cakePrice || 0);
+                let otherF = Number(item.otherFee || 0);
+                let dep = Number(item.deposit || 0);
+                let finalPay = (cakeP + otherF) - dep;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><b>${item.cusName}</b></td>
+                        <td>${item.cusPhone}</td>
+                        <td>Size: ${item.cakeSize || ''}<br>Nội dung: ${item.cakeContent || ''}</td>
+                        <td>${item.pickupDate} <br>${item.pickupTimeOnly}</td>
+                        <td>${cakeP.toLocaleString('vi-VN')}</td>
+                        <td>${otherF.toLocaleString('vi-VN')}</td>
+                        <td>${dep.toLocaleString('vi-VN')}</td>
+                        <td><b>${finalPay.toLocaleString('vi-VN')} đ</b></td>
+                        <td><b>${item.orderStatus}</b></td>
+                        <td class="actions-cell">
+                            <button class="btn-edit" onclick="editOrder('${k}')">Sửa</button>
+                            <button class="btn-delete" onclick="deleteOrder('${k}')">Xóa</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Chỉnh sửa đơn
+        function editOrder(id) {
+            const item = ordersData[id];
+            document.getElementById('orderId').value = id;
+            document.getElementById('cusName').value = item.cusName;
+            document.getElementById('cusPhone').value = item.cusPhone;
+            document.getElementById('cakeSize').value = item.cakeSize || '';
+            document.getElementById('cakeContent').value = item.cakeContent || '';
+            
+            document.getElementById('cakePrice').value = (item.cakePrice || 0) / 1000;
+            document.getElementById('otherFee').value = (item.otherFee || 0) / 1000;
+            document.getElementById('deposit').value = (item.deposit || 0) / 1000;
+
+            document.getElementById('pickupDate').value = item.pickupDate || '';
+            document.getElementById('pickupTimeOnly').value = item.pickupTimeOnly || '';
+            document.getElementById('note').value = item.note || '';
+            document.getElementById('orderStatus').value = item.orderStatus;
+
+            calculateTotal();
+            switchTab('create');
+        }
+
+        // Xóa đơn
+        function deleteOrder(id) {
+            if (confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
+                database.ref('orders/' + id).remove();
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            document.getElementById('orderForm').reset();
+            document.getElementById('orderId').value = '';
+            calculateTotal();
+        }
+
+        // Render Lịch lấy bánh
+        function renderCalendar() {
+            const calDiv = document.getElementById('calendarList');
+            calDiv.innerHTML = '';
+            const keys = Object.keys(ordersData);
+            if (keys.length === 0) {
+                calDiv.innerHTML = `<p>Chưa có lịch lấy bánh.</p>`;
+                return;
+            }
+            keys.sort((a, b) => new Date(ordersData[a].pickupDate + 'T' + (ordersData[a].pickupTimeOnly || '00:00')) - new Date(ordersData[b].pickupDate + 'T' + (ordersData[b].pickupTimeOnly || '00:00')));
+            
+            let html = '<ul>';
+            keys.forEach(k => {
+                const item = ordersData[k];
+                html += `<li style="margin-bottom: 8px;"><b>${item.pickupDate} lúc ${item.pickupTimeOnly}</b> - Khách: ${item.cusName} (${item.cusPhone}) - Bánh size ${item.cakeSize} [ND: ${item.cakeContent}] - Trạng thái: ${item.orderStatus}</li>`;
+            });
+            html += '</ul>';
+            calDiv.innerHTML = html;
+        }
+
+        // Báo cáo
+        function renderReport() {
+            let completedCount = 0;
+            let completedRev = 0;
+            Object.keys(ordersData).forEach(k => {
+                const item = ordersData[k];
+                if (item.orderStatus === 'Đã hoàn thành') {
+                    completedCount++;
+                    completedRev += Number(item.cakePrice || 0) + Number(item.otherFee || 0);
+                }
+            });
+            document.getElementById('reportContent').innerHTML = `
+                <p>Số đơn đã hoàn thành: <b>${completedCount}</b></p>
+                <p>Doanh thu thực tế (đơn đã hoàn thành): <b>${completedRev.toLocaleString('vi-VN')} đ</b></p>
+            `;
+        }
+
+        // Xuất Excel
+        function exportToExcel() {
+            const dataToExport = Object.keys(ordersData).map(k => {
+                const item = ordersData[k];
+                let price = Number(item.cakePrice || 0);
+                let fee = Number(item.otherFee || 0);
+                let dep = Number(item.deposit || 0);
+                return {
+                    "Tên Khách Hàng": item.cusName,
+                    "Số Điện Thoại": item.cusPhone,
+                    "Size Bánh": item.cakeSize,
+                    "Nội Dung Bánh": item.cakeContent,
+                    "Ngày Lấy": item.pickupDate,
+                    "Giờ Lấy": item.pickupTimeOnly,
+                    "Giá Bánh": price,
+                    "Phí Khác": fee,
+                    "Tiền Cọc": dep,
+                    "Tổng Thanh Toán": (price + fee) - dep,
+                    "Ghi Chú": item.note,
+                    "Trạng Thái": item.orderStatus
+                };
+            });
+            if(dataToExport.length === 0) {
+                alert("Không có dữ liệu để xuất!");
+                return;
+            }
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachDonHang");
+            XLSX.writeFile(workbook, "QuanLyDonHangTiemBanh.xlsx");
+        }
+    </script>
+</body>
+</html>
