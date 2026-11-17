@@ -4,137 +4,472 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản Lý Đơn Hàng Tiệm Bánh</title>
-    <!-- Thư viện Firebase Realtime Database -->
+    <!-- Thư viện Firebase Realtime Database (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <!-- Thư viện SheetJS để xuất Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --primary-color: #d63384;
             --bg-color: #fdf2f8;
             --card-bg: #ffffff;
             --text-color: #333333;
+            --border-color: #f3c2db;
         }
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body {
-            margin: 0;
-            background-color: var(--bg-color);
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            color: var(--text-color);
-            min-height: 100vh;
-        }
-        .overlay {
-            background: rgba(255, 255, 255, 0.88);
-            min-height: 100vh;
-            padding-bottom: 40px;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); }
+        
         header {
             background-color: var(--primary-color);
             color: white;
             padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            font-size: 20px;
+            font-weight: bold;
         }
-        .brand { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: bold; }
-        .brand img { height: 40px; width: 40px; object-fit: cover; border-radius: 50%; background: white; display: none; }
-        nav {
+
+        .nav-container {
             display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            background: #fff;
-            padding: 10px 20px;
-            border-bottom: 1px solid #ddd;
             justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        nav button {
-            background: transparent;
-            border: 1px solid var(--primary-color);
+
+        .nav-btn {
+            background: white;
             color: var(--primary-color);
-            padding: 8px 14px;
+            border: 2px solid var(--primary-color);
+            padding: 8px 16px;
             border-radius: 20px;
             cursor: pointer;
             font-weight: 600;
-            transition: 0.2s;
+            transition: all 0.3s;
         }
-        nav button.active, nav button:hover {
+
+        .nav-btn.active, .nav-btn:hover {
             background: var(--primary-color);
             color: white;
         }
-        .container { max-width: 1000px; margin: 20px auto; padding: 0 15px; }
-        .tab-content { display: none; background: var(--card-bg); padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        .tab-content { display: none; }
         .tab-content.active { display: block; }
-        h2 { margin-top: 0; color: var(--primary-color); border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
 
-        /* Dashboard Cards */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        h2 { color: var(--primary-color); margin-bottom: 15px; font-size: 22px; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
         .stat-card {
-            background: #f8f9fa;
+            background: white;
             border-left: 5px solid var(--primary-color);
-            padding: 15px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .stat-card h3 { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .stat-card .value { font-size: 24px; font-weight: bold; color: var(--primary-color); }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
             border-radius: 6px;
+            font-size: 14px;
         }
-        .stat-card h3 { margin: 0 0 8px 0; font-size: 14px; color: #666; }
-        .stat-card p { margin: 0; font-size: 22px; font-weight: bold; color: var(--primary-color); }
 
-        /* Forms */
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
-        input, select, textarea {
-            width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px;
+        .btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
         }
-        .helper-text { font-size: 12px; color: #e65100; margin-top: 3px; display: block; font-weight: 600; }
-        .btn-primary {
-            background: var(--primary-color); color: white; border: none; padding: 10px 20px;
-            border-radius: 5px; cursor: pointer; font-size: 15px; font-weight: bold;
-        }
-        .btn-primary:hover { opacity: 0.9; }
-        .btn-sm { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; color: white; }
-        .btn-edit { background: #0d6efd; }
-        .btn-del { background: #dc3545; }
+        .btn:hover { opacity: 0.9; }
 
-        /* Tables */
-        .table-responsive { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: left; vertical-align: middle; }
-        th { background: #f8f9fa; }
-        .cake-thumb { width: 55px; height: 55px; object-fit: cover; border-radius: 5px; cursor: pointer; border: 1px solid #ddd; }
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-        .badge-pending { background: #fff3cd; color: #856404; }
-        .badge-done { background: #d4edda; color: #155724; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: white;
+        }
+
+        table th, table td {
+            padding: 12px;
+            border: 1px solid #eee;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .actions-cell button {
+            padding: 5px 10px;
+            margin-right: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-edit { background: #ffc107; color: #333; }
+        .btn-delete { background: #dc3545; color: white; }
     </style>
 </head>
 <body>
-<div class="overlay">
-    <header>
-        <div class="brand">
-            <img id="appLogo" src="" alt="Logo">
-            <span id="appTitle">Quản Lý Tiệm Bánh</span>
-        </div>
-    </header>
 
-    <nav>
-        <button class="active" onclick="switchTab('tab-home', this)">1. Trang chủ</button>
-        <button onclick="switchTab('tab-create', this)">2. Tạo đơn</button>
-        <button onclick="switchTab('tab-list', this)">3. Danh sách đơn</button>
-        <button onclick="switchTab('tab-schedule', this)">4. Lịch lấy bánh</button>
-        <button onclick="switchTab('tab-report', this)">5. Báo cáo</button>
-        <button onclick="switchTab('tab-export', this)">6. Xuất Excel</button>
-        <button onclick="switchTab('tab-settings', this)">7. Cài đặt</button>
-    </nav>
+    <header>Quản Lý Tiệm Bánh</header>
+
+    <div class="nav-container">
+        <button class="nav-btn active" onclick="switchTab('home', this)">1. Trang chủ</button>
+        <button class="nav-btn" onclick="switchTab('create', this)">2. Tạo đơn</button>
+        <button class="nav-btn" onclick="switchTab('list', this)">3. Danh sách đơn</button>
+        <button class="nav-btn" onclick="switchTab('calendar', this)">4. Lịch lấy bánh</button>
+        <button class="nav-btn" onclick="switchTab('report', this)">5. Báo cáo</button>
+        <button class="nav-btn" onclick="switchTab('export', this)">6. Xuất Excel</button>
+        <button class="nav-btn" onclick="switchTab('settings', this)">7. Cài đặt</button>
+    </div>
 
     <div class="container">
-        <!-- 1. TRANG CHỦ -->
-        <div id="tab-home" class="tab-content active">
-            <h2>Tổng Quan Hoạt Động</h2>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Tổng số đơn hàng</h3>
-                    <p id="dash-total-orders">0</p>
+        <!-- 1. Trang chủ -->
+        <div id="home" class="tab-content active">
+            <div class="card">
+                <h2>Tổng Quan Hoạt Động</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Tổng số đơn hàng</h3>
+                        <div class="value" id="totalOrders">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Tổng doanh thu dự kiến</h3>
+                        <div class="value" id="totalRevenue">0 đ</div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h3>Tổng doanh thu dự kiến</h3>
-                    <p id="dash-total-revenue">0 đ</
+            </div>
+        </div>
+
+        <!-- 2. Tạo đơn -->
+        <div id="create" class="tab-content">
+            <div class="card">
+                <h2>Tạo Đơn Hàng Mới</h2>
+                <form id="orderForm" onsubmit="saveOrder(event)">
+                    <input type="hidden" id="orderId">
+                    <div class="form-group">
+                        <label>Tên khách hàng</label>
+                        <input type="text" id="cusName" required placeholder="Nhập tên khách hàng">
+                    </div>
+                    <div class="form-group">
+                        <label>Số điện thoại</label>
+                        <input type="text" id="cusPhone" required placeholder="Nhập số điện thoại">
+                    </div>
+                    <div class="form-group">
+                        <label>Tên bánh / Mô tả</label>
+                        <input type="text" id="cakeName" required placeholder="Ví dụ: Bánh sinh nhật kem sữa tươi 20cm">
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày giờ lấy bánh</label>
+                        <input type="datetime-local" id="pickupTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tổng tiền (VNĐ)</label>
+                        <input type="number" id="totalPrice" required placeholder="Nhập số tiền">
+                    </div>
+                    <div class="form-group">
+                        <label>Trạng thái</label>
+                        <select id="orderStatus">
+                            <option value="Mới đặt">Mới đặt</option>
+                            <option value="Đang làm">Đang làm</option>
+                            <option value="Đã hoàn thành">Đã hoàn thành</option>
+                            <option value="Đã hủy">Đã hủy</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Lưu Đơn Hàng</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 3. Danh sách đơn -->
+        <div id="list" class="tab-content">
+            <div class="card">
+                <h2>Danh Sách Đơn Hàng</h2>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Khách hàng</th>
+                                <th>Điện thoại</th>
+                                <th>Tên bánh</th>
+                                <th>Thời gian lấy</th>
+                                <th>Tiền (đ)</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTableBody">
+                            <!-- Dữ liệu sẽ load từ Firebase -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Lịch lấy bánh -->
+        <div id="calendar" class="tab-content">
+            <div class="card">
+                <h2>Lịch Lấy Bánh Sắp Tới</h2>
+                <div id="calendarList">
+                    <!-- Hiển thị lịch lấy bánh -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Báo cáo -->
+        <div id="report" class="tab-content">
+            <div class="card">
+                <h2>Báo Cáo Doanh Thu</h2>
+                <p>Tổng kết doanh thu theo trạng thái đơn hàng và thống kê chi tiết.</p>
+                <div id="reportContent" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <!-- 6. Xuất Excel -->
+        <div id="export" class="tab-content">
+            <div class="card">
+                <h2>Xuất Dữ Liệu Ra Excel</h2>
+                <p style="margin-bottom: 15px;">Tải xuống toàn bộ danh sách đơn hàng dưới định dạng tệp Excel (.xlsx).</p>
+                <button class="btn" onclick="exportToExcel()">Tải Xuống Excel</button>
+            </div>
+        </div>
+
+        <!-- 7. Cài đặt -->
+        <div id="settings" class="tab-content">
+            <div class="card">
+                <h2>Cài Đặt Hệ Thống</h2>
+                <p>Cấu hình kết nối Firebase Realtime Database hiện đang hoạt động trực tuyến.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CẤU HÌNH FIREBASE CỦA BẠN ---
+        // Thay thế đoạn cấu hình dưới đây bằng thông tin từ Firebase Console của bạn
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Khởi tạo Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let ordersData = {};
+
+        // Chuyển tab giao diện
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // Lắng nghe dữ liệu thay đổi từ Firebase Realtime Database
+        database.ref('orders').on('value', (snapshot) => {
+            ordersData = snapshot.val() || {};
+            updateDashboard();
+            renderOrderTable();
+            renderCalendar();
+            renderReport();
+        });
+
+        // Lưu hoặc Cập nhật đơn hàng
+        function saveOrder(e) {
+            e.preventDefault();
+            const id = document.getElementById('orderId').value;
+            const orderData = {
+                cusName: document.getElementById('cusName').value,
+                cusPhone: document.getElementById('cusPhone').value,
+                cakeName: document.getElementById('cakeName').value,
+                pickupTime: document.getElementById('pickupTime').value,
+                totalPrice: Number(document.getElementById('totalPrice').value),
+                orderStatus: document.getElementById('orderStatus').value
+            };
+
+            if (id) {
+                database.ref('orders/' + id).set(orderData, (error) => {
+                    if (!error) {
+                        alert('Cập nhật đơn thành công!');
+                        resetForm();
+                        switchTab('list', document.querySelectorAll('.nav-btn')[2]);
+                    }
+                });
+            } else {
+                database.ref('orders').push(orderData, (error) => {
+                    if (!error) {
+                        alert('Tạo đơn mới thành công!');
+                        resetForm();
+                        switchTab('list', document.querySelectorAll('.nav-btn')[2]);
+                    }
+                });
+            }
+        }
+
+        // Cập nhật Trang chủ
+        function updateDashboard() {
+            const keys = Object.keys(ordersData);
+            document.getElementById('totalOrders').innerText = keys.length;
+            let totalRev = 0;
+            keys.forEach(k => {
+                if (ordersData[k].orderStatus !== 'Đã hủy') {
+                    totalRev += Number(ordersData[k].totalPrice || 0);
+                }
+            });
+            document.getElementById('totalRevenue').innerText = totalRev.toLocaleString('vi-VN') + ' đ';
+        }
+
+        // Render Danh sách đơn hàng
+        function renderOrderTable() {
+            const tbody = document.getElementById('orderTableBody');
+            tbody.innerHTML = '';
+            const keys = Object.keys(ordersData);
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Chưa có đơn hàng nào</td></tr>`;
+                return;
+            }
+            keys.forEach(k => {
+                const item = ordersData[k];
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.cusName}</td>
+                        <td>${item.cusPhone}</td>
+                        <td>${item.cakeName}</td>
+                        <td>${item.pickupTime.replace('T', ' ')}</td>
+                        <td>${Number(item.totalPrice).toLocaleString('vi-VN')}</td>
+                        <td><b>${item.orderStatus}</b></td>
+                        <td class="actions-cell">
+                            <button class="btn-edit" onclick="editOrder('${k}')">Sửa</button>
+                            <button class="btn-delete" onclick="deleteOrder('${k}')">Xóa</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Chỉnh sửa đơn
+        function editOrder(id) {
+            const item = ordersData[id];
+            document.getElementById('orderId').value = id;
+            document.getElementById('cusName').value = item.cusName;
+            document.getElementById('cusPhone').value = item.cusPhone;
+            document.getElementById('cakeName').value = item.cakeName;
+            document.getElementById('pickupTime').value = item.pickupTime;
+            document.getElementById('totalPrice').value = item.totalPrice;
+            document.getElementById('orderStatus').value = item.orderStatus;
+            switchTab('create', document.querySelectorAll('.nav-btn')[1]);
+        }
+
+        // Xóa đơn
+        function deleteOrder(id) {
+            if (confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
+                database.ref('orders/' + id).remove();
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            document.getElementById('orderForm').reset();
+            document.getElementById('orderId').value = '';
+        }
+
+        // Render Lịch lấy bánh
+        function renderCalendar() {
+            const calDiv = document.getElementById('calendarList');
+            calDiv.innerHTML = '';
+            const keys = Object.keys(ordersData);
+            if (keys.length === 0) {
+                calDiv.innerHTML = `<p>Chưa có lịch lấy bánh.</p>`;
+                return;
+            }
+            // Sắp xếp theo thời gian lấy bánh
+            keys.sort((a, b) => new Date(ordersData[a].pickupTime) - new Date(ordersData[b].pickupTime));
+            
+            let html = '<ul>';
+            keys.forEach(k => {
+                const item = ordersData[k];
+                html += `<li style="margin-bottom: 8px;"><b>${item.pickupTime.replace('T', ' ')}</b> - Khách: ${item.cusName} (${item.cusPhone}) - Bánh: ${item.cakeName} [Trạng thái: ${item.orderStatus}]</li>`;
+            });
+            html += '</ul>';
+            calDiv.innerHTML = html;
+        }
+
+        // Báo cáo
+        function renderReport() {
+            let completedCount = 0;
+            let completedRev = 0;
+            Object.keys(ordersData).forEach(k => {
+                const item = ordersData[k];
+                if (item.orderStatus === 'Đã hoàn thành') {
+                    completedCount++;
+                    completedRev += Number(item.totalPrice || 0);
+                }
+            });
+            document.getElementById('reportContent').innerHTML = `
+                <p>Số đơn đã hoàn thành: <b>${completedCount}</b></p>
+                <p>Doanh thu thực tế (đơn đã hoàn thành): <b>${completedRev.toLocaleString('vi-VN')} đ</b></p>
+            `;
+        }
+
+        // Xuất Excel
+        function exportToExcel() {
+            const dataToExport = Object.keys(ordersData).map(k => {
+                const item = ordersData[k];
+                return {
+                    "Tên Khách Hàng": item.cusName,
+                    "Số Điện Thoại": item.cusPhone,
+                    "Tên Bánh": item.cakeName,
+                    "Thời Gian Lấy": item.pickupTime,
+                    "Tổng Tiền": item.totalPrice,
+                    "Trạng Thái": item.orderStatus
+                };
+            });
+            if(dataToExport.length === 0) {
+                alert("Không có dữ liệu để xuất!");
+                return;
+            }
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, "DanhSachDonHang", worksheet);
+            XLSX.writeFile(workbook, "QuanLyDonHangTiemBanh.xlsx");
+        }
+    </script>
+</body>
+</html>
