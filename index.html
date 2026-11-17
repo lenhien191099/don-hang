@@ -177,6 +177,10 @@
                     <label>Nội dung ghi trên bánh</label>
                     <input type="text" id="cakeNote" placeholder="VD: Chúc mừng sinh nhật Bé Bi">
                 </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label>Ghi chú thêm (Ít ngọt, giao gấp, dị ứng trứng...)</label>
+                    <textarea id="extraNote" rows="2" placeholder="Nhập các yêu cầu đặc biệt của khách..."></textarea>
+                </div>
                 <div class="form-group">
                     <label>Ngày lấy bánh *</label>
                     <input type="date" id="pickupDate">
@@ -224,7 +228,7 @@
                         <tr>
                             <th>Ảnh</th>
                             <th>Khách hàng</th>
-                            <th>Thông tin bánh</th>
+                            <th>Thông tin bánh & Ghi chú</th>
                             <th>Lịch giao</th>
                             <th>Thanh toán</th>
                             <th>Trạng thái</th>
@@ -386,6 +390,7 @@
         const custPhone = document.getElementById('custPhone').value.trim();
         const cakeInfo = document.getElementById('cakeInfo').value.trim();
         const cakeNote = document.getElementById('cakeNote').value.trim();
+        const extraNote = document.getElementById('extraNote').value.trim();
         const pickupDate = document.getElementById('pickupDate').value;
         const pickupTime = document.getElementById('pickupTime').value;
         const totalPrice = Number(document.getElementById('totalPrice').value) || 0;
@@ -399,7 +404,7 @@
 
         const orderData = {
             id: id ? Number(id) : Date.now(),
-            custName, custPhone, cakeInfo, cakeNote,
+            custName, custPhone, cakeInfo, cakeNote, extraNote,
             pickupDate, pickupTime, totalPrice, depositPrice,
             status, image: currentBase64Image
         };
@@ -424,6 +429,7 @@
         document.getElementById('custPhone').value = '';
         document.getElementById('cakeInfo').value = '';
         document.getElementById('cakeNote').value = '';
+        document.getElementById('extraNote').value = '';
         document.getElementById('pickupDate').value = '';
         document.getElementById('pickupTime').value = '';
         document.getElementById('totalPrice').value = '0';
@@ -443,7 +449,8 @@
         document.getElementById('custName').value = order.custName;
         document.getElementById('custPhone').value = order.custPhone;
         document.getElementById('cakeInfo').value = order.cakeInfo;
-        document.getElementById('cakeNote').value = order.cakeNote;
+        document.getElementById('cakeNote').value = order.cakeNote || '';
+        document.getElementById('extraNote').value = order.extraNote || '';
         document.getElementById('pickupDate').value = order.pickupDate;
         document.getElementById('pickupTime').value = order.pickupTime;
         document.getElementById('totalPrice').value = order.totalPrice;
@@ -504,7 +511,11 @@
             <tr>
                 <td>${o.image ? `<img src="${o.image}" class="cake-thumb">` : 'Không ảnh'}</td>
                 <td><strong>${o.custName}</strong><br><small>${o.custPhone}</small></td>
-                <td><strong>${o.cakeInfo}</strong><br><small>Ghi chữ: ${o.cakeNote || 'Không'}</small></td>
+                <td>
+                    <strong>${o.cakeInfo}</strong><br>
+                    <small>Ghi chữ: ${o.cakeNote || 'Không'}</small><br>
+                    <small style="color: #d63384;">Ghi chú thêm: ${o.extraNote || 'Không'}</small>
+                </td>
                 <td>${o.pickupDate}<br><strong>${o.pickupTime}</strong></td>
                 <td>
                     Tổng: ${formatMoney(o.totalPrice)}<br>
@@ -534,7 +545,11 @@
                 <td><strong style="font-size:16px; color:var(--primary-color);">${o.pickupTime}</strong></td>
                 <td>${o.pickupDate}</td>
                 <td>${o.custName} - ${o.custPhone}</td>
-                <td><strong>${o.cakeInfo}</strong><br><small>Chữ: ${o.cakeNote || 'Không'}</small></td>
+                <td>
+                    <strong>${o.cakeInfo}</strong><br>
+                    <small>Chữ: ${o.cakeNote || 'Không'}</small><br>
+                    <small style="color: #d63384;">Ghi chú thêm: ${o.extraNote || 'Không'}</small>
+                </td>
                 <td>${o.image ? `<img src="${o.image}" class="cake-thumb">` : '-'}</td>
                 <td><span class="badge ${o.status === 'Đã giao' ? 'badge-done' : 'badge-pending'}">${o.status}</span></td>
             </tr>
@@ -570,11 +585,11 @@
             return;
         }
 
-        const headers = ['Ngày lấy', 'Giờ lấy', 'Khách hàng', 'Số điện thoại', 'Tên bánh', 'Ghi chữ', 'Tổng tiền', 'Tiền cọc', 'Còn thu', 'Trạng thái'];
+        const headers = ['Ngày lấy', 'Giờ lấy', 'Khách hàng', 'Số điện thoại', 'Tên bánh', 'Ghi chữ', 'Ghi chú thêm', 'Tổng tiền', 'Tiền cọc', 'Còn thu', 'Trạng thái'];
         const rows = dataToExport.map(o => [
             o.pickupDate, o.pickupTime, `"${o.custName}"`, `"\t${o.custPhone}"`,
-            `"${o.cakeInfo}"`, `"${o.cakeNote || ''}"`, o.totalPrice, o.depositPrice,
-            (o.totalPrice - o.depositPrice), `"${o.status}"`
+            `"${o.cakeInfo}"`, `"${o.cakeNote || ''}"`, `"${o.extraNote || ''}"`, 
+            o.totalPrice, o.depositPrice, (o.totalPrice - o.depositPrice), `"${o.status}"`
         ]);
 
         const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
