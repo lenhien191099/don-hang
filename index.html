@@ -1,598 +1,754 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản Lý Đơn Hàng Tiệm Bánh</title>
-    <!-- Thư viện Firebase Realtime Database (Compat) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <!-- Thư viện SheetJS để xuất Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        :root {
-            --primary-color: #d63384;
-            --bg-color: #fdf2f8;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --border-color: #f3c2db;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); }
-        
-        header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 15px 20px;
-            font-size: 20px;
-            font-weight: bold;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mèo Cake - Quản lý đơn hàng</title>
 
-        .nav-container {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 15px;
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-        .nav-btn {
-            background: white;
-            color: var(--primary-color);
-            border: 2px solid var(--primary-color);
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .nav-btn.active, .nav-btn:hover {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 15px;
-        }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-
-        h2 { color: var(--primary-color); margin-bottom: 15px; font-size: 22px; }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-        }
-
-        .stat-card {
-            background: white;
-            border-left: 5px solid var(--primary-color);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .stat-card h3 { font-size: 14px; color: #666; margin-bottom: 8px; }
-        .stat-card .value { font-size: 24px; font-weight: bold; color: var(--primary-color); }
-
-        .form-row {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        .form-group { margin-bottom: 15px; flex: 1; min-width: 250px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        .money-note {
-            font-size: 12px;
-            color: #d63384;
-            margin-top: 3px;
-            display: block;
-        }
-
-        .btn {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn:hover { opacity: 0.9; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            background: white;
-        }
-
-        table th, table td {
-            padding: 10px;
-            border: 1px solid #eee;
-            text-align: left;
-            font-size: 13px;
-        }
-
-        table th {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        .actions-cell button {
-            padding: 5px 8px;
-            margin-right: 3px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .btn-edit { background: #ffc107; color: #333; }
-        .btn-delete { background: #dc3545; color: white; }
-    </style>
+<style>
+:root {
+  --main:#e99ab4;
+  --bg:#fff7fa;
+  --card:#ffffff;
+  --text:#49343d;
+  --border:#f2dce5;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:Arial,sans-serif;
+}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+header{
+  background:var(--card);padding:18px 24px;
+  border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+}
+header h2{margin:0;color:var(--main)}
+.container{max-width:1100px;margin:auto;padding:20px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+nav button,.btn{
+  border:0;background:var(--main);color:white;
+  padding:11px 16px;border-radius:9px;
+}
+nav button.active{background:#a94e73}
+.card{
+  background:var(--card);padding:20px;border-radius:14px;
+  border:1px solid var(--border);margin-bottom:16px;
+}
+h3{margin-top:0}
+label{display:block;font-size:14px;margin:12px 0 6px}
+input,select,textarea{
+  width:100%;padding:11px;border:1px solid var(--border);
+  border-radius:8px;background:var(--card);color:var(--text);
+}
+textarea{min-height:75px;resize:vertical}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.full{grid-column:1/-1}
+.money-note{font-size:12px;color:#999;margin-top:5px}
+.summary{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+}
+.summary div{background:var(--bg);padding:16px;border-radius:10px}
+.summary strong{display:block;font-size:20px;color:var(--main);margin-top:8px}
+.order{
+  border:1px solid var(--border);padding:14px;
+  border-radius:10px;margin:12px 0;
+}
+.order h4{margin:0 0 8px}
+.order img{width:100px;height:100px;object-fit:cover;border-radius:8px;margin:5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.secondary{background:#777}
+.danger{background:#d9534f}
+.hidden{display:none!important}
+#login{max-width:400px;margin:70px auto}
+small{color:#888}
+@media(max-width:600px){
+ .container{padding:12px}
+ .grid,.summary{grid-template-columns:1fr}
+ header{padding:15px}
+ nav button{flex:1}
+}
+</style>
 </head>
+
 <body>
 
-    <header>Quản Lý Tiệm Bánh</header>
+<div id="login" class="card">
+  <h2 style="text-align:center;color:var(--main)">MÈO CAKE</h2>
+  <p style="text-align:center">Đăng nhập quản lý đơn hàng</p>
+  <label>Email</label>
+  <input id="email" type="email" placeholder="Email của bạn">
+  <label>Mật khẩu</label>
+  <input id="password" type="password" placeholder="Mật khẩu">
+  <button class="btn" style="width:100%;margin-top:15px" onclick="signIn()">Đăng nhập</button>
+  <button class="btn secondary" style="width:100%;margin-top:8px" onclick="signUp()">Tạo tài khoản</button>
+  <p id="loginMsg"></p>
+</div>
 
-    <div class="nav-container">
-        <button class="nav-btn active" data-target="home">1. Trang chủ</button>
-        <button class="nav-btn" data-target="create">2. Tạo đơn</button>
-        <button class="nav-btn" data-target="list">3. Danh sách đơn</button>
-        <button class="nav-btn" data-target="calendar">4. Lịch lấy bánh</button>
-        <button class="nav-btn" data-target="report">5. Báo cáo</button>
-        <button class="nav-btn" data-target="export">6. Xuất Excel</button>
-        <button class="nav-btn" data-target="settings">7. Cài đặt</button>
-    </div>
+<div id="app" class="hidden">
 
-    <div class="container">
-        <!-- 1. Trang chủ -->
-        <div id="home" class="tab-content active">
-            <div class="card">
-                <h2>Tổng Quan Hoạt Động</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Tổng số đơn hàng</h3>
-                        <div class="value" id="totalOrders">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Tổng doanh thu dự kiến</h3>
-                        <div class="value" id="totalRevenue">0 đ</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<header>
+  <h2>🍰 MÈO CAKE</h2>
+  <button class="btn secondary" onclick="signOut()">Đăng xuất</button>
+</header>
 
-        <!-- 2. Tạo đơn -->
-        <div id="create" class="tab-content">
-            <div class="card">
-                <h2>Tạo Đơn Hàng Mới</h2>
-                <form id="orderForm" onsubmit="saveOrder(event)">
-                    <input type="hidden" id="orderId">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Tên khách hàng</label>
-                            <input type="text" id="cusName" required placeholder="Nhập tên khách hàng">
-                        </div>
-                        <div class="form-group">
-                            <label>Số điện thoại</label>
-                            <input type="text" id="cusPhone" required placeholder="Nhập số điện thoại">
-                        </div>
-                    </div>
+<div class="container">
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Size bánh</label>
-                            <input type="text" id="cakeSize" placeholder="Ví dụ: 18cm, 20cm...">
-                        </div>
-                        <div class="form-group">
-                            <label>Nội dung viết trên bánh</label>
-                            <input type="text" id="cakeContent" placeholder="Ví dụ: Chúc mừng sinh nhật An...">
-                        </div>
-                    </div>
+<nav>
+  <button class="active" onclick="showPage('create',this)">＋ Tạo đơn</button>
+  <button onclick="showPage('list',this)">Danh sách đơn</button>
+  <button onclick="showPage('report',this)">Báo cáo</button>
+  <button onclick="showPage('excel',this)">Xuất Excel</button>
+  <button onclick="showPage('settings',this)">Cài đặt</button>
+</nav>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Giá bánh (Nhập 150 = 150.000đ)</label>
-                            <input type="number" id="cakePrice" required placeholder="Ví dụ: 200" oninput="calculateTotal()">
-                            <span class="money-note" id="noteCakePrice">= 0 đ</span>
-                        </div>
-                        <div class="form-group">
-                            <label>Phí khác (Ship, phụ thu...)</label>
-                            <input type="number" id="otherFee" value="0" placeholder="Ví dụ: 20" oninput="calculateTotal()">
-                            <span class="money-note" id="noteOtherFee">= 0 đ</span>
-                        </div>
-                        <div class="form-group">
-                            <label>Tiền cọc</label>
-                            <input type="number" id="deposit" value="0" placeholder="Ví dụ: 50" oninput="calculateTotal()">
-                            <span class="money-note" id="noteDeposit">= 0 đ</span>
-                        </div>
-                    </div>
+<!-- TẠO ĐƠN -->
+<section id="create">
+<div class="card">
+<h3 id="formTitle">Tạo đơn hàng mới</h3>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Ngày lấy</label>
-                            <input type="date" id="pickupDate" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Thời gian lấy (Giờ)</label>
-                            <input type="time" id="pickupTimeOnly" required>
-                        </div>
-                    </div>
+<form id="orderForm">
+<div class="grid">
 
-                    <div class="form-group">
-                        <label>Ghi chú thêm</label>
-                        <textarea id="note" rows="2" placeholder="Yêu cầu đặc biệt về cốt bánh, nến, dao muỗng..."></textarea>
-                    </div>
+<div>
+<label>Tên khách hàng *</label>
+<input id="customer" required placeholder="Tên khách hàng">
+</div>
 
-                    <div class="form-group">
-                        <label>Trạng thái đơn hàng</label>
-                        <select id="orderStatus">
-                            <option value="Mới đặt">Mới đặt</option>
-                            <option value="Đang làm">Đang làm</option>
-                            <option value="Đã hoàn thành">Đã hoàn thành</option>
-                            <option value="Đã hủy">Đã hủy</option>
-                        </select>
-                    </div>
+<div>
+<label>Số điện thoại *</label>
+<input id="phone" required type="tel" placeholder="Số điện thoại">
+</div>
 
-                    <div style="background: #fff3cd; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold;">
-                        Tổng tiền cần thanh toán (Giá bánh + Phí khác - Cọc): <span id="displayTotalText" style="color: #d63384;">0 đ</span>
-                    </div>
+<div>
+<label>Size bánh</label>
+<input id="size" placeholder="Ví dụ: Size 20, 2 tầng...">
+</div>
 
-                    <button type="submit" class="btn">Lưu Đơn Hàng</button>
-                </form>
-            </div>
-        </div>
+<div>
+<label>Giá bánh (nghìn đồng)</label>
+<input id="price" type="number" min="0" value="0">
+</div>
 
-        <!-- 3. Danh sách đơn -->
-        <div id="list" class="tab-content">
-            <div class="card">
-                <h2>Danh Sách Đơn Hàng</h2>
-                <div style="overflow-x: auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Khách hàng</th>
-                                <th>Điện thoại</th>
-                                <th>Size & Nội dung</th>
-                                <th>Lấy bánh</th>
-                                <th>Giá bánh</th>
-                                <th>Phí khác</th>
-                                <th>Cọc</th>
-                                <th>Tổng thanh toán</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody id="orderTableBody">
-                            <!-- Dữ liệu load từ Firebase -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+<div>
+<label>Tiền cọc (nghìn đồng)</label>
+<input id="deposit" type="number" min="0" value="0">
+</div>
 
-        <!-- 4. Lịch lấy bánh -->
-        <div id="calendar" class="tab-content">
-            <div class="card">
-                <h2>Lịch Lấy Bánh Sắp Tới</h2>
-                <div id="calendarList"></div>
-            </div>
-        </div>
+<div>
+<label>Phí khác (nghìn đồng)</label>
+<input id="otherFee" type="number" min="0" value="0">
+</div>
 
-        <!-- 5. Báo cáo -->
-        <div id="report" class="tab-content">
-            <div class="card">
-                <h2>Báo Cáo Doanh Thu</h2>
-                <div id="reportContent" style="margin-top: 15px;"></div>
-            </div>
-        </div>
+<div class="full">
+<label>Nội dung bánh</label>
+<textarea id="content" placeholder="Mô tả mẫu bánh, màu sắc, chữ viết..."></textarea>
+</div>
 
-        <!-- 6. Xuất Excel -->
-        <div id="export" class="tab-content">
-            <div class="card">
-                <h2>Xuất Dữ Liệu Ra Excel</h2>
-                <p style="margin-bottom: 15px;">Tải xuống toàn bộ danh sách đơn hàng dưới định dạng tệp Excel (.xlsx).</p>
-                <button class="btn" onclick="exportToExcel()">Tải Xuống Excel</button>
-            </div>
-        </div>
+<div>
+<label>Ngày lấy bánh *</label>
+<input id="pickupDate" type="date" required>
+</div>
 
-        <!-- 7. Cài đặt -->
-        <div id="settings" class="tab-content">
-            <div class="card">
-                <h2>Cài Đặt Hệ Thống</h2>
-                <p>Cấu hình kết nối Firebase Realtime Database đang hoạt động.</p>
-            </div>
-        </div>
-    </div>
+<div>
+<label>Giờ lấy bánh *</label>
+<input id="pickupTime" type="time" required>
+</div>
 
-    <script>
-        // --- CẤU HÌNH FIREBASE CỦA BẠN ---
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            databaseURL: "YOUR_DATABASE_URL",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+<div class="full">
+<label>Ghi chú thêm</label>
+<textarea id="notes" placeholder="Ghi chú dành cho đơn hàng"></textarea>
+</div>
 
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+<div class="full">
+<label>Chèn ảnh bánh</label>
+<input id="photos" type="file" accept="image/*" multiple>
+<small>Có thể chọn nhiều ảnh. Ảnh được lưu trên Supabase.</small>
+</div>
 
-        let ordersData = {};
+<div class="full" id="preview"></div>
 
-        // Xử lý chuyển tab an toàn bằng sự kiện DOMContentLoaded
-        document.addEventListener('DOMContentLoaded', () => {
-            const navButtons = document.querySelectorAll('.nav-btn');
-            navButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const targetTabId = btn.getAttribute('data-target');
-                    
-                    // Xóa active tất cả các tab và nút
-                    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-                    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-                    
-                    // Thêm active cho tab và nút được chọn
-                    document.getElementById(targetTabId).classList.add('active');
-                    btn.classList.add('active');
-                });
-            });
-        });
+</div>
 
-        // Hàm chuyển tab dùng chung từ bên ngoài (nếu cần)
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById(tabId).classList.add('active');
-            const targetBtn = document.querySelector(`.nav-btn[data-target="${tabId}"]`);
-            if (targetBtn) targetBtn.classList.add('active');
-        }
+<div class="card" style="background:var(--bg);margin-top:15px">
+  <div><b>Tổng tiền:</b> <span id="total">0đ</span></div>
+  <div style="margin-top:8px"><b>Còn phải thu:</b> <span id="remaining">0đ</span></div>
+</div>
 
-        // Tự động tính hiển thị nhân 1000 cho các ô nhập tiền
-        function calculateTotal() {
-            let cakePriceVal = (Number(document.getElementById('cakePrice').value) || 0) * 1000;
-            let otherFeeVal = (Number(document.getElementById('otherFee').value) || 0) * 1000;
-            let depositVal = (Number(document.getElementById('deposit').value) || 0) * 1000;
+<button class="btn" type="submit" id="saveBtn">Lưu đơn hàng</button>
+<button class="btn secondary" type="button" onclick="resetForm()">Làm mới</button>
+<p id="formMsg"></p>
+</form>
+</div>
+</section>
 
-            document.getElementById('noteCakePrice').innerText = `= ${cakePriceVal.toLocaleString('vi-VN')} đ`;
-            document.getElementById('noteOtherFee').innerText = `= ${otherFeeVal.toLocaleString('vi-VN')} đ`;
-            document.getElementById('noteDeposit').innerText = `= ${depositVal.toLocaleString('vi-VN')} đ`;
+<!-- DANH SÁCH -->
+<section id="list" class="hidden">
+<div class="card">
+<h3>Danh sách đơn hàng</h3>
+<label>Chọn ngày lấy bánh</label>
+<input type="date" id="filterDate" onchange="renderOrders()">
+<button class="btn secondary" onclick="clearFilter()" style="margin-top:10px">Xem tất cả</button>
+<div id="orderList"></div>
+</div>
+</section>
 
-            let totalFinal = (cakePriceVal + otherFeeVal) - depositVal;
-            document.getElementById('displayTotalText').innerText = `${totalFinal.toLocaleString('vi-VN')} đ`;
-        }
+<!-- BÁO CÁO -->
+<section id="report" class="hidden">
+<div class="card">
+<h3>Báo cáo doanh thu</h3>
 
-        // Lắng nghe dữ liệu Firebase
-        database.ref('orders').on('value', (snapshot) => {
-            ordersData = snapshot.val() || {};
-            updateDashboard();
-            renderOrderTable();
-            renderCalendar();
-            renderReport();
-        });
+<label>Chọn ngày</label>
+<input type="date" id="reportDate" onchange="renderReport()">
 
-        // Lưu hoặc Cập nhật đơn hàng
-        function saveOrder(e) {
-            e.preventDefault();
-            const id = document.getElementById('orderId').value;
-            
-            const rawCakePrice = Number(document.getElementById('cakePrice').value) || 0;
-            const rawOtherFee = Number(document.getElementById('otherFee').value) || 0;
-            const rawDeposit = Number(document.getElementById('deposit').value) || 0;
+<div class="summary" style="margin-top:15px">
+<div>Doanh thu ngày<strong id="dayRevenue">0đ</strong></div>
+<div>Tiền cọc<strong id="dayDeposit">0đ</strong></div>
+<div>Số đơn<strong id="dayCount">0</strong></div>
+</div>
+</div>
 
-            const orderData = {
-                cusName: document.getElementById('cusName').value,
-                cusPhone: document.getElementById('cusPhone').value,
-                cakeSize: document.getElementById('cakeSize').value,
-                cakeContent: document.getElementById('cakeContent').value,
-                cakePrice: rawCakePrice * 1000,
-                otherFee: rawOtherFee * 1000,
-                deposit: rawDeposit * 1000,
-                pickupDate: document.getElementById('pickupDate').value,
-                pickupTimeOnly: document.getElementById('pickupTimeOnly').value,
-                note: document.getElementById('note').value,
-                orderStatus: document.getElementById('orderStatus').value
-            };
+<div class="card">
+<h3>Báo cáo theo tháng</h3>
+<label>Chọn tháng</label>
+<input type="month" id="reportMonth" onchange="renderReport()">
 
-            if (id) {
-                database.ref('orders/' + id).set(orderData, (error) => {
-                    if (!error) {
-                        alert('Cập nhật đơn thành công!');
-                        resetForm();
-                        switchTab('list');
-                    }
-                });
-            } else {
-                database.ref('orders').push(orderData, (error) => {
-                    if (!error) {
-                        alert('Tạo đơn mới thành công!');
-                        resetForm();
-                        switchTab('list');
-                    }
-                });
-            }
-        }
+<div class="summary" style="margin-top:15px">
+<div>Doanh thu tháng<strong id="monthRevenue">0đ</strong></div>
+<div>Tiền cọc<strong id="monthDeposit">0đ</strong></div>
+<div>Số đơn<strong id="monthCount">0</strong></div>
+</div>
+</div>
+</section>
 
-        // Cập nhật Trang chủ
-        function updateDashboard() {
-            const keys = Object.keys(ordersData);
-            document.getElementById('totalOrders').innerText = keys.length;
-            let totalRev = 0;
-            keys.forEach(k => {
-                const item = ordersData[k];
-                if (item.orderStatus !== 'Đã hủy') {
-                    let price = Number(item.cakePrice || 0) + Number(item.otherFee || 0);
-                    totalRev += price;
-                }
-            });
-            document.getElementById('totalRevenue').innerText = totalRev.toLocaleString('vi-VN') + ' đ';
-        }
+<!-- EXCEL -->
+<section id="excel" class="hidden">
+<div class="card">
+<h3>Xuất dữ liệu Excel</h3>
+<p>Chọn tháng hoặc xuất toàn bộ đơn hàng.</p>
+<label>Chọn tháng muốn xuất</label>
+<input type="month" id="excelMonth">
+<button class="btn" style="margin-top:15px" onclick="exportExcel('month')">Xuất Excel theo tháng</button>
+<button class="btn" style="margin-top:15px" onclick="exportExcel('all')">Xuất tất cả đơn hàng</button>
+</div>
+</section>
 
-        // Render Danh sách đơn hàng
-        function renderOrderTable() {
-            const tbody = document.getElementById('orderTableBody');
-            tbody.innerHTML = '';
-            const keys = Object.keys(ordersData);
-            if (keys.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">Chưa có đơn hàng nào</td></tr>`;
-                return;
-            }
-            keys.forEach(k => {
-                const item = ordersData[k];
-                let cakeP = Number(item.cakePrice || 0);
-                let otherF = Number(item.otherFee || 0);
-                let dep = Number(item.deposit || 0);
-                let finalPay = (cakeP + otherF) - dep;
+<!-- CÀI ĐẶT -->
+<section id="settings" class="hidden">
+<div class="card">
+<h3>Cài đặt giao diện</h3>
+<label>Màu chủ đạo</label>
+<select id="themeColor" onchange="changeTheme()">
+<option value="pink">Hồng pastel</option>
+<option value="purple">Tím pastel</option>
+<option value="blue">Xanh pastel</option>
+<option value="green">Xanh lá</option>
+<option value="brown">Nâu kem</option>
+</select>
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td><b>${item.cusName}</b></td>
-                        <td>${item.cusPhone}</td>
-                        <td>Size: ${item.cakeSize || ''}<br>Nội dung: ${item.cakeContent || ''}</td>
-                        <td>${item.pickupDate} <br>${item.pickupTimeOnly}</td>
-                        <td>${cakeP.toLocaleString('vi-VN')}</td>
-                        <td>${otherF.toLocaleString('vi-VN')}</td>
-                        <td>${dep.toLocaleString('vi-VN')}</td>
-                        <td><b>${finalPay.toLocaleString('vi-VN')} đ</b></td>
-                        <td><b>${item.orderStatus}</b></td>
-                        <td class="actions-cell">
-                            <button class="btn-edit" onclick="editOrder('${k}')">Sửa</button>
-                            <button class="btn-delete" onclick="deleteOrder('${k}')">Xóa</button>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
+<label>Chế độ giao diện</label>
+<select id="themeMode" onchange="changeTheme()">
+<option value="light">Sáng</option>
+<option value="dark">Tối</option>
+</select>
+<button class="btn secondary" onclick="resetTheme()" style="margin-top:15px">Khôi phục mặc định</button>
+</div>
+</section>
 
-        // Chỉnh sửa đơn
-        function editOrder(id) {
-            const item = ordersData[id];
-            document.getElementById('orderId').value = id;
-            document.getElementById('cusName').value = item.cusName;
-            document.getElementById('cusPhone').value = item.cusPhone;
-            document.getElementById('cakeSize').value = item.cakeSize || '';
-            document.getElementById('cakeContent').value = item.cakeContent || '';
-            
-            document.getElementById('cakePrice').value = (item.cakePrice || 0) / 1000;
-            document.getElementById('otherFee').value = (item.otherFee || 0) / 1000;
-            document.getElementById('deposit').value = (item.deposit || 0) / 1000;
+</div>
+</div>
 
-            document.getElementById('pickupDate').value = item.pickupDate || '';
-            document.getElementById('pickupTimeOnly').value = item.pickupTimeOnly || '';
-            document.getElementById('note').value = item.note || '';
-            document.getElementById('orderStatus').value = item.orderStatus;
+<script>
+// ==========================================
+// 1. KẾT NỐI SUPABASE
+// ==========================================
 
-            calculateTotal();
-            switchTab('create');
-        }
+const SUPABASE_URL = "DAN_SUPABASE_PROJECT_URL_VAO_DAY";
+const SUPABASE_KEY = "DAN_SUPABASE_ANON_KEY_VAO_DAY";
 
-        // Xóa đơn
-        function deleteOrder(id) {
-            if (confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
-                database.ref('orders/' + id).remove();
-            }
-        }
+const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-        // Reset form
-        function resetForm() {
-            document.getElementById('orderForm').reset();
-            document.getElementById('orderId').value = '';
-            calculateTotal();
-        }
+let currentUser = null;
+let orders = [];
+let editingId = null;
+let selectedFiles = [];
 
-        // Render Lịch lấy bánh
-        function renderCalendar() {
-            const calDiv = document.getElementById('calendarList');
-            calDiv.innerHTML = '';
-            const keys = Object.keys(ordersData);
-            if (keys.length === 0) {
-                calDiv.innerHTML = `<p>Chưa có lịch lấy bánh.</p>`;
-                return;
-            }
-            keys.sort((a, b) => new Date(ordersData[a].pickupDate + 'T' + (ordersData[a].pickupTimeOnly || '00:00')) - new Date(ordersData[b].pickupDate + 'T' + (ordersData[b].pickupTimeOnly || '00:00')));
-            
-            let html = '<ul>';
-            keys.forEach(k => {
-                const item = ordersData[k];
-                html += `<li style="margin-bottom: 8px;"><b>${item.pickupDate} lúc ${item.pickupTimeOnly}</b> - Khách: ${item.cusName} (${item.cusPhone}) - Bánh size ${item.cakeSize} [ND: ${item.cakeContent}] - Trạng thái: ${item.orderStatus}</li>`;
-            });
-            html += '</ul>';
-            calDiv.innerHTML = html;
-        }
+// ==========================================
+// 2. ĐĂNG NHẬP
+// ==========================================
 
-        // Báo cáo
-        function renderReport() {
-            let completedCount = 0;
-            let completedRev = 0;
-            Object.keys(ordersData).forEach(k => {
-                const item = ordersData[k];
-                if (item.orderStatus === 'Đã hoàn thành') {
-                    completedCount++;
-                    completedRev += Number(item.cakePrice || 0) + Number(item.otherFee || 0);
-                }
-            });
-            document.getElementById('reportContent').innerHTML = `
-                <p>Số đơn đã hoàn thành: <b>${completedCount}</b></p>
-                <p>Doanh thu thực tế (đơn đã hoàn thành): <b>${completedRev.toLocaleString('vi-VN')} đ</b></p>
-            `;
-        }
+async function signIn(){
+  const {error} = await db.auth.signInWithPassword({
+    email:email.value,
+    password:password.value
+  });
+  if(error){loginMsg.textContent=error.message;return;}
+  await initApp();
+}
 
-        // Xuất Excel
-        function exportToExcel() {
-            const dataToExport = Object.keys(ordersData).map(k => {
-                const item = ordersData[k];
-                let price = Number(item.cakePrice || 0);
-                let fee = Number(item.otherFee || 0);
-                let dep = Number(item.deposit || 0);
-                return {
-                    "Tên Khách Hàng": item.cusName,
-                    "Số Điện Thoại": item.cusPhone,
-                    "Size Bánh": item.cakeSize,
-                    "Nội Dung Bánh": item.cakeContent,
-                    "Ngày Lấy": item.pickupDate,
-                    "Giờ Lấy": item.pickupTimeOnly,
-                    "Giá Bánh": price,
-                    "Phí Khác": fee,
-                    "Tiền Cọc": dep,
-                    "Tổng Thanh Toán": (price + fee) - dep,
-                    "Ghi Chú": item.note,
-                    "Trạng Thái": item.orderStatus
-                };
-            });
-            if(dataToExport.length === 0) {
-                alert("Không có dữ liệu để xuất!");
-                return;
-            }
-            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachDonHang");
-            XLSX.writeFile(workbook, "QuanLyDonHangTiemBanh.xlsx");
-        }
-    </script>
+async function signUp(){
+  const {error} = await db.auth.signUp({
+    email:email.value,
+    password:password.value
+  });
+  loginMsg.textContent=error
+    ? error.message
+    : "Đăng ký thành công. Hãy kiểm tra email xác nhận nếu được yêu cầu.";
+}
+
+async function signOut(){
+  await db.auth.signOut();
+  location.reload();
+}
+
+async function initApp(){
+  const {data:{session}} = await db.auth.getSession();
+  if(!session) return;
+
+  currentUser=session.user;
+  login.classList.add("hidden");
+  app.classList.remove("hidden");
+
+  loadTheme();
+  await loadOrders();
+}
+
+db.auth.onAuthStateChange((event,session)=>{
+  if(event==="SIGNED_OUT"){
+    login.classList.remove("hidden");
+    app.classList.add("hidden");
+  }
+});
+
+// ==========================================
+// 3. GIAO DIỆN
+// ==========================================
+
+function showPage(page,button){
+  document.querySelectorAll("section").forEach(s=>s.classList.add("hidden"));
+  document.getElementById(page).classList.remove("hidden");
+
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+  button.classList.add("active");
+
+  if(page==="list") renderOrders();
+  if(page==="report") renderReport();
+}
+
+function money(n){
+  return Number(n||0).toLocaleString("vi-VN")+"đ";
+}
+
+function changeTheme(){
+  const colors={
+    pink:["#e99ab4","#fff7fa","#ffffff","#49343d","#f2dce5"],
+    purple:["#b69bd7","#faf7ff","#ffffff","#44364e","#e8def3"],
+    blue:["#88b9dc","#f3f9ff","#ffffff","#34475a","#dceaf5"],
+    green:["#91bda0","#f3faf5","#ffffff","#35483a","#dcebe0"],
+    brown:["#bd987c","#faf5ef","#ffffff","#59483b","#eadfd2"]
+  };
+
+  let c=colors[themeColor.value]||colors.pink;
+  let dark=themeMode.value==="dark";
+
+  document.documentElement.style.setProperty("--main",c[0]);
+  document.documentElement.style.setProperty("--bg",dark?"#242126":c[1]);
+  document.documentElement.style.setProperty("--card",dark?"#353139":c[2]);
+  document.documentElement.style.setProperty("--text",dark?"#f7edf2":c[3]);
+  document.documentElement.style.setProperty("--border",dark?"#514651":c[4]);
+
+  localStorage.setItem("meocakeTheme",JSON.stringify({
+    color:themeColor.value,mode:themeMode.value
+  }));
+}
+
+function loadTheme(){
+  let t=JSON.parse(localStorage.getItem("meocakeTheme")||'{"color":"pink","mode":"light"}');
+  themeColor.value=t.color;
+  themeMode.value=t.mode;
+  changeTheme();
+}
+
+function resetTheme(){
+  themeColor.value="pink";
+  themeMode.value="light";
+  changeTheme();
+}
+
+// ==========================================
+// 4. TÍNH TIỀN
+// ==========================================
+
+function calculate(){
+  let total=(Number(price.value)+Number(otherFee.value))*1000;
+  let depositAmount=Number(deposit.value)*1000;
+  document.getElementById("total").textContent=money(total);
+  document.getElementById("remaining").textContent=money(total-depositAmount);
+}
+
+["price","deposit","otherFee"].forEach(id=>{
+  document.getElementById(id).addEventListener("input",calculate);
+});
+
+// ==========================================
+// 5. CHỌN ẢNH
+// ==========================================
+
+photos.addEventListener("change",()=>{
+  selectedFiles=Array.from(photos.files);
+  preview.innerHTML="";
+
+  selectedFiles.forEach(file=>{
+    const img=document.createElement("img");
+    img.src=URL.createObjectURL(file);
+    img.style.width="90px";
+    img.style.height="90px";
+    img.style.objectFit="cover";
+    img.style.margin="5px";
+    preview.appendChild(img);
+  });
+});
+
+async function uploadPhotos(existing=[]){
+  let urls=[...existing];
+
+  for(const file of selectedFiles){
+    const ext=file.name.split(".").pop();
+    const path=currentUser.id+"/"+Date.now()+"_"+Math.random().toString(36).slice(2)+"."+ext;
+
+    const {error}=await db.storage.from("cake-photos").upload(path,file);
+    if(error) throw error;
+
+    const {data}=db.storage.from("cake-photos").getPublicUrl(path);
+    urls.push(data.publicUrl);
+  }
+  return urls;
+}
+
+// ==========================================
+// 6. LƯU ĐƠN
+// ==========================================
+
+orderForm.addEventListener("submit",async e=>{
+  e.preventDefault();
+
+  saveBtn.disabled=true;
+  formMsg.textContent="Đang lưu đơn hàng...";
+
+  try{
+    const total=(Number(price.value)+Number(otherFee.value))*1000;
+    const depositAmount=Number(deposit.value)*1000;
+
+    if(depositAmount>total){
+      throw new Error("Tiền cọc không được lớn hơn tổng tiền.");
+    }
+
+    const oldOrder=orders.find(o=>o.id===editingId);
+    const imageUrls=await uploadPhotos(oldOrder?.image_urls||[]);
+
+    const payload={
+      user_id:currentUser.id,
+      customer_name:customer.value.trim(),
+      customer_phone:phone.value.trim(),
+      cake_size:size.value,
+      cake_content:content.value,
+      price:Number(price.value)*1000,
+      deposit:depositAmount,
+      other_fee:Number(otherFee.value)*1000,
+      shipping_fee:0,
+      pickup_at:new Date(pickupDate.value+"T"+pickupTime.value).toISOString(),
+      notes:notes.value,
+      image_urls:imageUrls
+    };
+
+    let result;
+
+    if(editingId){
+      result=await db.from("orders").update(payload)
+        .eq("id",editingId).eq("user_id",currentUser.id);
+    }else{
+      result=await db.from("orders").insert(payload);
+    }
+
+    if(result.error) throw result.error;
+
+    formMsg.textContent="Đã lưu đơn hàng thành công!";
+    resetForm();
+    await loadOrders();
+
+  }catch(error){
+    formMsg.textContent="Lỗi: "+error.message;
+  }finally{
+    saveBtn.disabled=false;
+  }
+});
+
+function resetForm(){
+  orderForm.reset();
+  editingId=null;
+  selectedFiles=[];
+  preview.innerHTML="";
+  formTitle.textContent="Tạo đơn hàng mới";
+  saveBtn.textContent="Lưu đơn hàng";
+  calculate();
+}
+
+// ==========================================
+// 7. TẢI DANH SÁCH ĐƠN
+// ==========================================
+
+async function loadOrders(){
+  const {data,error}=await db.from("orders")
+    .select("*")
+    .eq("user_id",currentUser.id)
+    .order("pickup_at",{ascending:true});
+
+  if(error){
+    alert("Không tải được đơn hàng: "+error.message);
+    return;
+  }
+
+  orders=data||[];
+  renderOrders();
+  renderReport();
+}
+
+function renderOrders(){
+  const filter=filterDate.value;
+  const list=document.getElementById("orderList");
+
+  let data=orders.filter(o=>
+    !filter||o.pickup_at.slice(0,10)===filter
+  );
+
+  if(!data.length){
+    list.innerHTML="<p>Chưa có đơn hàng nào.</p>";
+    return;
+  }
+
+  const groups={};
+
+  data.forEach(o=>{
+    let day=o.pickup_at.slice(0,10);
+    if(!groups[day])groups[day]=[];
+    groups[day].push(o);
+  });
+
+  list.innerHTML="";
+
+  Object.keys(groups).sort().forEach(day=>{
+    const heading=document.createElement("h3");
+    heading.textContent="📅 "+new Date(day+"T00:00:00").toLocaleDateString("vi-VN");
+    list.appendChild(heading);
+
+    groups[day].forEach(o=>{
+      let total=Number(o.price||0)+Number(o.other_fee||0);
+      let time=new Date(o.pickup_at).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
+
+      const box=document.createElement("div");
+      box.className="order";
+
+      const title=document.createElement("h4");
+      title.textContent=o.customer_name+" - "+time;
+      box.appendChild(title);
+
+      const detail=document.createElement("div");
+      detail.innerHTML="";
+      const lines=[
+        "SĐT: "+(o.customer_phone||""),
+        "Size: "+(o.cake_size||""),
+        "Nội dung: "+(o.cake_content||""),
+        "Giá bánh: "+money(o.price),
+        "Phí khác: "+money(o.other_fee),
+        "Tổng tiền: "+money(total),
+        "Đã cọc: "+money(o.deposit),
+        "Còn lại: "+money(total-Number(o.deposit||0)),
+        "Ghi chú: "+(o.notes||"")
+      ];
+
+      lines.forEach(line=>{
+        let p=document.createElement("p");
+        p.textContent=line;
+        box.appendChild(p);
+      });
+
+      (o.image_urls||[]).forEach(url=>{
+        let img=document.createElement("img");
+        img.src=url;
+        img.alt="Ảnh bánh";
+        box.appendChild(img);
+      });
+
+      const actions=document.createElement("div");
+      actions.className="actions";
+
+      const edit=document.createElement("button");
+      edit.className="btn";
+      edit.textContent="Sửa đơn";
+      edit.onclick=()=>editOrder(o.id);
+
+      const del=document.createElement("button");
+      del.className="btn danger";
+      del.textContent="Xóa đơn";
+      del.onclick=()=>deleteOrder(o.id);
+
+      actions.append(edit,del);
+      box.appendChild(actions);
+      list.appendChild(box);
+    });
+  });
+}
+
+function clearFilter(){
+  filterDate.value="";
+  renderOrders();
+}
+
+// ==========================================
+// 8. SỬA VÀ XÓA ĐƠN
+// ==========================================
+
+function editOrder(id){
+  const o=orders.find(x=>x.id===id);
+  if(!o)return;
+
+  editingId=id;
+  customer.value=o.customer_name||"";
+  phone.value=o.customer_phone||"";
+  size.value=o.cake_size||"";
+  content.value=o.cake_content||"";
+  price.value=Number(o.price||0)/1000;
+  deposit.value=Number(o.deposit||0)/1000;
+  otherFee.value=Number(o.other_fee||0)/1000;
+  notes.value=o.notes||"";
+
+  let date=new Date(o.pickup_at);
+  const pad=n=>String(n).padStart(2,"0");
+  pickupDate.value=date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate());
+  pickupTime.value=pad(date.getHours())+":"+pad(date.getMinutes());
+
+  selectedFiles=[];
+  photos.value="";
+  preview.innerHTML="";
+
+  (o.image_urls||[]).forEach(url=>{
+    let img=document.createElement("img");
+    img.src=url;
+    img.style.width="90px";
+    img.style.height="90px";
+    img.style.objectFit="cover";
+    img.style.margin="5px";
+    preview.appendChild(img);
+  });
+
+  formTitle.textContent="Chỉnh sửa đơn hàng";
+  saveBtn.textContent="Cập nhật đơn hàng";
+  calculate();
+
+  document.querySelectorAll("nav button")[0].click();
+}
+
+async function deleteOrder(id){
+  if(!confirm("Bạn có chắc muốn xóa đơn này?"))return;
+
+  const {error}=await db.from("orders")
+    .delete().eq("id",id).eq("user_id",currentUser.id);
+
+  if(error){alert(error.message);return;}
+  await loadOrders();
+}
+
+// ==========================================
+// 9. BÁO CÁO DOANH THU
+// ==========================================
+
+function renderReport(){
+  if(!currentUser)return;
+
+  let day=reportDate.value;
+  let month=reportMonth.value;
+
+  let dayOrders=orders.filter(o=>o.pickup_at.slice(0,10)===day);
+  let monthOrders=orders.filter(o=>o.pickup_at.slice(0,7)===month);
+
+  const total=o=>Number(o.price||0)+Number(o.other_fee||0);
+  const sum=(arr,fn)=>arr.reduce((s,o)=>s+fn(o),0);
+
+  dayRevenue.textContent=money(sum(dayOrders,total));
+  dayDeposit.textContent=money(sum(dayOrders,o=>Number(o.deposit||0)));
+  dayCount.textContent=dayOrders.length;
+
+  monthRevenue.textContent=money(sum(monthOrders,total));
+  monthDeposit.textContent=money(sum(monthOrders,o=>Number(o.deposit||0)));
+  monthCount.textContent=monthOrders.length;
+}
+
+// ==========================================
+// 10. XUẤT EXCEL
+// ==========================================
+
+function exportExcel(type){
+  let data=orders;
+
+  if(type==="month"){
+    let month=excelMonth.value;
+    if(!month){alert("Vui lòng chọn tháng.");return;}
+    data=orders.filter(o=>o.pickup_at.slice(0,7)===month);
+  }
+
+  if(!data.length){
+    alert("Không có đơn hàng để xuất.");
+    return;
+  }
+
+  let rows=data.map(o=>{
+    let total=Number(o.price||0)+Number(o.other_fee||0);
+    return {
+      "Ngày lấy bánh":new Date(o.pickup_at).toLocaleDateString("vi-VN"),
+      "Giờ lấy bánh":new Date(o.pickup_at).toLocaleTimeString("vi-VN"),
+      "Tên khách hàng":o.customer_name,
+      "Số điện thoại":o.customer_phone,
+      "Size bánh":o.cake_size,
+      "Nội dung bánh":o.cake_content,
+      "Giá bánh":o.price,
+      "Phí khác":o.other_fee,
+      "Tổng tiền":total,
+      "Tiền cọc":o.deposit,
+      "Còn lại":total-Number(o.deposit||0),
+      "Ghi chú":o.notes,
+      "Ảnh bánh":(o.image_urls||[]).join(", ")
+    };
+  });
+
+  let sheet=XLSX.utils.json_to_sheet(rows);
+  let book=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book,sheet,"Don hang");
+
+  let filename=type==="month"
+    ?"MeoCake_"+excelMonth.value+".xlsx"
+    :"MeoCake_TatCaDonHang.xlsx";
+
+  XLSX.writeFile(book,filename);
+}
+
+// ==========================================
+// 11. KHỞI ĐỘNG
+// ==========================================
+
+document.getElementById("reportDate").value=
+  new Date().toISOString().slice(0,10);
+
+document.getElementById("reportMonth").value=
+  new Date().toISOString().slice(0,7);
+
+initApp();
+
+</script>
 </body>
 </html>
