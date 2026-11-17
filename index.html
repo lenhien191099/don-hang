@@ -209,7 +209,7 @@
                 <img id="imagePreview" style="max-height: 120px; display: none; border-radius: 6px; margin-top: 5px;">
             </div>
             <button class="btn-primary" onclick="saveOrder()">Lưu Đơn Hàng</button>
-            <button class="btn-sm btn-del" id="btnCancelEdit" style="display:none; padding: 10px 15px; font-size: 15px;" onclick="resetForm()">Hủy sửa</button>
+            <button class="btn-sm btn-del" id="btnCancelEdit" style="display:none; padding: 10px 15px; font-size: 15px; margin-left: 10px;" onclick="resetForm()">Hủy sửa</button>
         </div>
 
         <!-- 3. DANH SÁCH ĐƠN -->
@@ -335,7 +335,6 @@
     };
     let currentBase64Image = '';
 
-    // Khởi tạo ứng dụng
     window.onload = function() {
         applySettings();
         const today = new Date();
@@ -357,7 +356,6 @@
         return Number(amount || 0).toLocaleString('vi-VN') + ' đ';
     }
 
-    // Xử lý nén ảnh mẫu bánh để không đầy bộ nhớ trình duyệt
     function previewImage(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -382,7 +380,6 @@
         reader.readAsDataURL(file);
     }
 
-    // 2. Tạo / Sửa đơn hàng
     function saveOrder() {
         const id = document.getElementById('orderId').value;
         const custName = document.getElementById('custName').value.trim();
@@ -391,4 +388,258 @@
         const cakeNote = document.getElementById('cakeNote').value.trim();
         const pickupDate = document.getElementById('pickupDate').value;
         const pickupTime = document.getElementById('pickupTime').value;
-        const totalPrice = Number(document.getElementById
+        const totalPrice = Number(document.getElementById('totalPrice').value) || 0;
+        const depositPrice = Number(document.getElementById('depositPrice').value) || 0;
+        const status = document.getElementById('orderStatus').value;
+
+        if (!custName || !cakeInfo || !pickupDate || !pickupTime) {
+            alert('Vui lòng nhập đầy đủ Tên khách, Tên bánh, Ngày và Giờ lấy bánh!');
+            return;
+        }
+
+        const orderData = {
+            id: id ? Number(id) : Date.now(),
+            custName, custPhone, cakeInfo, cakeNote,
+            pickupDate, pickupTime, totalPrice, depositPrice,
+            status, image: currentBase64Image
+        };
+
+        if (id) {
+            const index = orders.findIndex(o => o.id === Number(id));
+            if (index !== -1) orders[index] = orderData;
+            alert('Đã cập nhật đơn hàng!');
+        } else {
+            orders.push(orderData);
+            alert('Đã thêm đơn hàng mới!');
+        }
+
+        localStorage.setItem('bakery_orders', JSON.stringify(orders));
+        resetForm();
+        switchTab('tab-list', document.querySelectorAll('nav button')[2]);
+    }
+
+    function resetForm() {
+        document.getElementById('orderId').value = '';
+        document.getElementById('custName').value = '';
+        document.getElementById('custPhone').value = '';
+        document.getElementById('cakeInfo').value = '';
+        document.getElementById('cakeNote').value = '';
+        document.getElementById('pickupDate').value = '';
+        document.getElementById('pickupTime').value = '';
+        document.getElementById('totalPrice').value = '0';
+        document.getElementById('depositPrice').value = '0';
+        document.getElementById('orderStatus').value = 'Chưa giao';
+        document.getElementById('cakeImageInput').value = '';
+        document.getElementById('imagePreview').style.display = 'none';
+        currentBase64Image = '';
+        document.getElementById('form-title').innerText = 'Tạo Đơn Hàng Mới';
+        document.getElementById('btnCancelEdit').style.display = 'none';
+    }
+
+    function editOrder(id) {
+        const order = orders.find(o => o.id === id);
+        if (!order) return;
+        document.getElementById('orderId').value = order.id;
+        document.getElementById('custName').value = order.custName;
+        document.getElementById('custPhone').value = order.custPhone;
+        document.getElementById('cakeInfo').value = order.cakeInfo;
+        document.getElementById('cakeNote').value = order.cakeNote;
+        document.getElementById('pickupDate').value = order.pickupDate;
+        document.getElementById('pickupTime').value = order.pickupTime;
+        document.getElementById('totalPrice').value = order.totalPrice;
+        document.getElementById('depositPrice').value = order.depositPrice;
+        document.getElementById('orderStatus').value = order.status;
+        currentBase64Image = order.image || '';
+        const preview = document.getElementById('imagePreview');
+        if (currentBase64Image) {
+            preview.src = currentBase64Image;
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+        document.getElementById('form-title').innerText = 'Chỉnh Sửa Đơn Hàng';
+        document.getElementById('btnCancelEdit').style.display = 'inline-block';
+        switchTab('tab-create', document.querySelectorAll('nav button')[1]);
+    }
+
+    function deleteOrder(id) {
+        if (confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
+            orders = orders.filter(o => o.id !== id);
+            localStorage.setItem('bakery_orders', JSON.stringify(orders));
+            refreshAllViews();
+        }
+    }
+
+    function renderDashboard() {
+        const totalOrders = orders.length;
+        const totalRevenue = orders.reduce((sum, o) => sum + o.totalPrice, 0);
+        const pendingOrders = orders.filter(o => o.status === 'Chưa giao');
+
+        document.getElementById('dash-total-orders').innerText = totalOrders;
+        document.getElementById('dash-total-revenue').innerText = formatMoney(totalRevenue);
+        document.getElementById('dash-pending-orders').innerText = pendingOrders.length;
+
+        const upcoming = [...pendingOrders].sort((a, b) => (a.pickupDate + a.pickupTime).localeCompare(b.pickupDate + b.pickupTime)).slice(0, 5);
+        const tbody = document.getElementById('dash-upcoming-body');
+        tbody.innerHTML = upcoming.length ? upcoming.map(o => `
+            <tr>
+                <td><strong>${o.pickupDate}</strong> lúc <strong>${o.pickupTime}</strong></td>
+                <td>${o.custName} (${o.custPhone})</td>
+                <td>${o.cakeInfo}</td>
+                <td style="color:#dc3545; font-weight:bold;">${formatMoney(o.totalPrice - o.depositPrice)}</td>
+            </tr>
+        `).join('') : '<tr><td colspan="4" style="text-align:center;">Không có đơn hàng sắp giao</td></tr>';
+    }
+
+    function renderOrderList() {
+        const keyword = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = orders.filter(o =>
+            o.custName.toLowerCase().includes(keyword) ||
+            o.custPhone.includes(keyword) ||
+            o.cakeInfo.toLowerCase().includes(keyword)
+        ).sort((a, b) => b.id - a.id);
+
+        const tbody = document.getElementById('orderListBody');
+        tbody.innerHTML = filtered.length ? filtered.map(o => `
+            <tr>
+                <td>${o.image ? `<img src="${o.image}" class="cake-thumb">` : 'Không ảnh'}</td>
+                <td><strong>${o.custName}</strong><br><small>${o.custPhone}</small></td>
+                <td><strong>${o.cakeInfo}</strong><br><small>Ghi chữ: ${o.cakeNote || 'Không'}</small></td>
+                <td>${o.pickupDate}<br><strong>${o.pickupTime}</strong></td>
+                <td>
+                    Tổng: ${formatMoney(o.totalPrice)}<br>
+                    Cọc: ${formatMoney(o.depositPrice)}<br>
+                    <strong style="color:#dc3545;">Còn: ${formatMoney(o.totalPrice - o.depositPrice)}</strong>
+                </td>
+                <td><span class="badge ${o.status === 'Đã giao' ? 'badge-done' : 'badge-pending'}">${o.status}</span></td>
+                <td>
+                    <button class="btn-sm btn-edit" onclick="editOrder(${o.id})">Sửa</button>
+                    <button class="btn-sm btn-del" onclick="deleteOrder(${o.id})">Xóa</button>
+                </td>
+            </tr>
+        `).join('') : '<tr><td colspan="7" style="text-align:center;">Chưa có đơn hàng nào</td></tr>';
+    }
+
+    function renderSchedule() {
+        const filterDate = document.getElementById('filterScheduleDate').value;
+        let list = [...orders];
+        if (filterDate) {
+            list = list.filter(o => o.pickupDate === filterDate);
+        }
+        list.sort((a, b) => (a.pickupDate + a.pickupTime).localeCompare(b.pickupDate + b.pickupTime));
+
+        const tbody = document.getElementById('scheduleBody');
+        tbody.innerHTML = list.length ? list.map(o => `
+            <tr>
+                <td><strong style="font-size:16px; color:var(--primary-color);">${o.pickupTime}</strong></td>
+                <td>${o.pickupDate}</td>
+                <td>${o.custName} - ${o.custPhone}</td>
+                <td><strong>${o.cakeInfo}</strong><br><small>Chữ: ${o.cakeNote || 'Không'}</small></td>
+                <td>${o.image ? `<img src="${o.image}" class="cake-thumb">` : '-'}</td>
+                <td><span class="badge ${o.status === 'Đã giao' ? 'badge-done' : 'badge-pending'}">${o.status}</span></td>
+            </tr>
+        `).join('') : '<tr><td colspan="6" style="text-align:center;">Không có lịch lấy bánh trong thời gian này</td></tr>';
+    }
+
+    function renderReport() {
+        const month = document.getElementById('reportMonth').value;
+        const filtered = month ? orders.filter(o => o.pickupDate.startsWith(month)) : orders;
+
+        const revenue = filtered.reduce((s, o) => s + o.totalPrice, 0);
+        const deposit = filtered.reduce((s, o) => s + o.depositPrice, 0);
+        const remaining = revenue - deposit;
+
+        document.getElementById('rep-revenue').innerText = formatMoney(revenue);
+        document.getElementById('rep-deposit').innerText = formatMoney(deposit);
+        document.getElementById('rep-remaining').innerText = formatMoney(remaining);
+    }
+
+    function exportExcel(mode) {
+        let dataToExport = orders;
+        let fileName = 'Danh_sach_don_hang_toan_bo.csv';
+
+        if (mode === 'month') {
+            const month = document.getElementById('exportMonth').value;
+            if (!month) { alert('Vui lòng chọn tháng cần xuất!'); return; }
+            dataToExport = orders.filter(o => o.pickupDate.startsWith(month));
+            fileName = `Don_hang_thang_${month}.csv`;
+        }
+
+        if (!dataToExport.length) {
+            alert('Không có dữ liệu đơn hàng để xuất!');
+            return;
+        }
+
+        const headers = ['Ngày lấy', 'Giờ lấy', 'Khách hàng', 'Số điện thoại', 'Tên bánh', 'Ghi chữ', 'Tổng tiền', 'Tiền cọc', 'Còn thu', 'Trạng thái'];
+        const rows = dataToExport.map(o => [
+            o.pickupDate, o.pickupTime, `"${o.custName}"`, `"\t${o.custPhone}"`,
+            `"${o.cakeInfo}"`, `"${o.cakeNote || ''}"`, o.totalPrice, o.depositPrice,
+            (o.totalPrice - o.depositPrice), `"${o.status}"`
+        ]);
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.click();
+    }
+
+    function uploadSettingImage(event, type) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (type === 'logo') settings.logo = e.target.result;
+            if (type === 'bg') settings.bg = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function saveSettings() {
+        const name = document.getElementById('setShopName').value.trim();
+        if (name) settings.shopName = name;
+        settings.themeColor = document.getElementById('setThemeColor').value;
+        localStorage.setItem('bakery_settings', JSON.stringify(settings));
+        applySettings();
+        alert('Đã lưu cài đặt giao diện!');
+    }
+
+    function applySettings() {
+        document.documentElement.style.setProperty('--primary-color', settings.themeColor);
+        document.getElementById('appTitle').innerText = settings.shopName;
+        document.getElementById('setShopName').value = settings.shopName;
+        document.getElementById('setThemeColor').value = settings.themeColor;
+
+        const logoEl = document.getElementById('appLogo');
+        if (settings.logo) {
+            logoEl.src = settings.logo;
+            logoEl.style.display = 'block';
+        } else {
+            logoEl.style.display = 'none';
+        }
+
+        if (settings.bg) {
+            document.body.style.backgroundImage = `url('${settings.bg}')`;
+        } else {
+            document.body.style.backgroundImage = 'none';
+        }
+    }
+
+    function resetSettings() {
+        if (confirm('Khôi phục màu sắc, logo và hình nền về mặc định?')) {
+            settings = { shopName: 'Quản Lý Tiệm Bánh', themeColor: '#d63384', logo: '', bg: '' };
+            localStorage.setItem('bakery_settings', JSON.stringify(settings));
+            applySettings();
+        }
+    }
+
+    function refreshAllViews() {
+        renderDashboard();
+        renderOrderList();
+        renderSchedule();
+        renderReport();
+    }
+</script>
+</body>
+</html>
