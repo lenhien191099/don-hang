@@ -89,6 +89,7 @@
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 14px;
+            background: #fff;
         }
         .money-note {
             font-size: 12px;
@@ -101,10 +102,11 @@
             background: var(--primary-color);
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 15px;
         }
         .btn:hover { opacity: 0.9; }
 
@@ -188,85 +190,83 @@
         <div id="create" class="tab-content active">
             <div class="card">
                 <h2>Tạo Đơn Hàng Mới</h2>
-                <form id="orderForm">
-                    <input type="hidden" id="orderId">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Tên khách hàng (*)</label>
-                            <input type="text" id="cusName" required placeholder="Nhập tên khách hàng">
-                        </div>
-                        <div class="form-group">
-                            <label>Số điện thoại (*)</label>
-                            <input type="text" id="cusPhone" required placeholder="Nhập số điện thoại">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Size bánh</label>
-                            <input type="text" id="cakeSize" placeholder="Ví dụ: 18cm, 20cm...">
-                        </div>
-                        <div class="form-group">
-                            <label>Nội dung viết trên bánh</label>
-                            <input type="text" id="cakeContent" placeholder="Ví dụ: Chúc mừng sinh nhật An...">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Giá bánh (*)</label>
-                            <input type="number" id="cakePrice" required placeholder="Nhập 250 = 250.000đ" oninput="calculateTotal()">
-                            <span class="money-note" id="noteCakePrice">= 0 đ</span>
-                        </div>
-                        <div class="form-group">
-                            <label>Tiền cọc</label>
-                            <input type="number" id="deposit" value="0" placeholder="Nhập 50 = 50.000đ" oninput="calculateTotal()">
-                            <span class="money-note" id="noteDeposit">= 0 đ</span>
-                        </div>
-                        <div class="form-group">
-                            <label>Phí khác (Ship, phụ thu...)</label>
-                            <input type="number" id="otherFee" value="0" placeholder="Nhập 30 = 30.000đ" oninput="calculateTotal()">
-                            <span class="money-note" id="noteOtherFee">= 0 đ</span>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Thời gian lấy bánh (Ngày & Giờ) (*)</label>
-                            <input type="datetime-local" id="pickupDateTime" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Chèn ảnh mẫu bánh</label>
-                            <input type="file" id="cakeImageFile" accept="image/*" onchange="previewImage(event)">
-                            <input type="hidden" id="cakeImageBase64">
-                            <div style="margin-top: 5px;">
-                                <img id="imgPreview" src="" style="max-height: 80px; display: none; border-radius: 4px; border: 1px solid #ccc;">
-                            </div>
-                        </div>
-                    </div>
-
+                <input type="hidden" id="orderId">
+                
+                <div class="form-row">
                     <div class="form-group">
-                        <label>Ghi chú thêm</label>
-                        <textarea id="note" rows="2" placeholder="Yêu cầu cốt bánh, nến, dao muỗng..."></textarea>
+                        <label>Tên khách hàng (*)</label>
+                        <input type="text" id="cusName" placeholder="Nhập tên khách hàng">
                     </div>
-
                     <div class="form-group">
-                        <label>Trạng thái đơn hàng</label>
-                        <select id="orderStatus">
-                            <option value="Mới đặt">Mới đặt</option>
-                            <option value="Đang làm">Đang làm</option>
-                            <option value="Đã hoàn thành">Đã hoàn thành</option>
-                            <option value="Đã hủy">Đã hủy</option>
-                        </select>
+                        <label>Số điện thoại (*)</label>
+                        <input type="text" id="cusPhone" placeholder="Nhập số điện thoại">
                     </div>
+                </div>
 
-                    <div style="background: #fff3cd; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold;">
-                        Tổng tiền cần thanh toán (Giá bánh + Phí khác - Cọc): <span id="displayTotalText" style="color: var(--primary-color);">0 đ</span>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Size bánh</label>
+                        <input type="text" id="cakeSize" placeholder="Ví dụ: 18cm, 20cm...">
                     </div>
+                    <div class="form-group">
+                        <label>Nội dung viết trên bánh</label>
+                        <input type="text" id="cakeContent" placeholder="Ví dụ: Chúc mừng sinh nhật An...">
+                    </div>
+                </div>
 
-                    <button type="button" class="btn" onclick="saveOrderData()">Lưu Đơn Hàng</button>
-                </form>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Giá bánh (*)</label>
+                        <input type="number" id="cakePrice" placeholder="Nhập 250 = 250.000đ" oninput="calculateTotal()">
+                        <span class="money-note" id="noteCakePrice">= 0 đ</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Tiền cọc</label>
+                        <input type="number" id="deposit" value="0" placeholder="Nhập 50 = 50.000đ" oninput="calculateTotal()">
+                        <span class="money-note" id="noteDeposit">= 0 đ</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Phí khác (Ship, phụ thu...)</label>
+                        <input type="number" id="otherFee" value="0" placeholder="Nhập 30 = 30.000đ" oninput="calculateTotal()">
+                        <span class="money-note" id="noteOtherFee">= 0 đ</span>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Thời gian lấy bánh (Ngày & Giờ) (*)</label>
+                        <input type="datetime-local" id="pickupDateTime">
+                    </div>
+                    <div class="form-group">
+                        <label>Chèn ảnh mẫu bánh</label>
+                        <input type="file" id="cakeImageFile" accept="image/*" onchange="previewImage(event)">
+                        <input type="hidden" id="cakeImageBase64">
+                        <div style="margin-top: 5px;">
+                            <img id="imgPreview" src="" style="max-height: 80px; display: none; border-radius: 4px; border: 1px solid #ccc;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Ghi chú thêm</label>
+                    <textarea id="note" rows="2" placeholder="Yêu cầu cốt bánh, nến, dao muỗng..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Trạng thái đơn hàng</label>
+                    <select id="orderStatus">
+                        <option value="Mới đặt">Mới đặt</option>
+                        <option value="Đang làm">Đang làm</option>
+                        <option value="Đã hoàn thành">Đã hoàn thành</option>
+                        <option value="Đã hủy">Đã hủy</option>
+                    </select>
+                </div>
+
+                <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-weight: bold;">
+                    Tổng tiền cần thanh toán (Giá bánh + Phí khác - Cọc): <span id="displayTotalText" style="color: var(--primary-color);">0 đ</span>
+                </div>
+
+                <button type="button" class="btn" onclick="saveOrderData()">Lưu Đơn Hàng</button>
             </div>
         </div>
 
@@ -416,14 +416,12 @@
             document.getElementById('headerStatus').innerText = 'Lỗi kết nối cơ sở dữ liệu!';
         });
 
-        // Thay đổi cơ chế bấm nút trực tiếp bằng hàm JavaScript để tránh bị chặn form
         function saveOrderData() {
             const cusName = document.getElementById('cusName').value.trim();
             const cusPhone = document.getElementById('cusPhone').value.trim();
             const cakePrice = document.getElementById('cakePrice').value;
             const pickupDateTime = document.getElementById('pickupDateTime').value;
 
-            // Kiểm tra các trường bắt buộc
             if (!cusName || !cusPhone || !cakePrice || !pickupDateTime) {
                 alert('Vui lòng điền đầy đủ các thông tin bắt buộc: Tên khách hàng, Số điện thoại, Giá bánh và Thời gian lấy bánh!');
                 return;
@@ -596,10 +594,20 @@
         }
 
         function resetForm() {
-            document.getElementById('orderForm').reset();
             document.getElementById('orderId').value = '';
+            document.getElementById('cusName').value = '';
+            document.getElementById('cusPhone').value = '';
+            document.getElementById('cakeSize').value = '';
+            document.getElementById('cakeContent').value = '';
+            document.getElementById('cakePrice').value = '';
+            document.getElementById('deposit').value = '0';
+            document.getElementById('otherFee').value = '0';
+            document.getElementById('pickupDateTime').value = '';
+            document.getElementById('cakeImageFile').value = '';
             document.getElementById('cakeImageBase64').value = '';
             document.getElementById('imgPreview').style.display = 'none';
+            document.getElementById('note').value = '';
+            document.getElementById('orderStatus').value = 'Mới đặt';
             calculateTotal();
         }
 
