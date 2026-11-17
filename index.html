@@ -108,7 +108,6 @@
         }
         .btn:hover { opacity: 0.9; }
 
-        /* Danh sách theo ngày */
         .date-group-title {
             background: var(--primary-color);
             color: white;
@@ -189,16 +188,16 @@
         <div id="create" class="tab-content active">
             <div class="card">
                 <h2>Tạo Đơn Hàng Mới</h2>
-                <form id="orderForm" onsubmit="saveOrder(event)">
+                <form id="orderForm">
                     <input type="hidden" id="orderId">
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Tên khách hàng</label>
+                            <label>Tên khách hàng (*)</label>
                             <input type="text" id="cusName" required placeholder="Nhập tên khách hàng">
                         </div>
                         <div class="form-group">
-                            <label>Số điện thoại</label>
+                            <label>Số điện thoại (*)</label>
                             <input type="text" id="cusPhone" required placeholder="Nhập số điện thoại">
                         </div>
                     </div>
@@ -216,25 +215,25 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Giá bánh (Nhập 150 = 150.000đ)</label>
-                            <input type="number" id="cakePrice" required placeholder="Ví dụ: 250" oninput="calculateTotal()">
+                            <label>Giá bánh (*)</label>
+                            <input type="number" id="cakePrice" required placeholder="Nhập 250 = 250.000đ" oninput="calculateTotal()">
                             <span class="money-note" id="noteCakePrice">= 0 đ</span>
                         </div>
                         <div class="form-group">
-                            <label>Tiền cọc (Nhập 50 = 50.000đ)</label>
-                            <input type="number" id="deposit" value="0" placeholder="Ví dụ: 50" oninput="calculateTotal()">
+                            <label>Tiền cọc</label>
+                            <input type="number" id="deposit" value="0" placeholder="Nhập 50 = 50.000đ" oninput="calculateTotal()">
                             <span class="money-note" id="noteDeposit">= 0 đ</span>
                         </div>
                         <div class="form-group">
                             <label>Phí khác (Ship, phụ thu...)</label>
-                            <input type="number" id="otherFee" value="0" placeholder="Ví dụ: 30" oninput="calculateTotal()">
+                            <input type="number" id="otherFee" value="0" placeholder="Nhập 30 = 30.000đ" oninput="calculateTotal()">
                             <span class="money-note" id="noteOtherFee">= 0 đ</span>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Thời gian lấy bánh (Ngày & Giờ)</label>
+                            <label>Thời gian lấy bánh (Ngày & Giờ) (*)</label>
                             <input type="datetime-local" id="pickupDateTime" required>
                         </div>
                         <div class="form-group">
@@ -266,7 +265,7 @@
                         Tổng tiền cần thanh toán (Giá bánh + Phí khác - Cọc): <span id="displayTotalText" style="color: var(--primary-color);">0 đ</span>
                     </div>
 
-                    <button type="submit" class="btn">Lưu Đơn Hàng</button>
+                    <button type="button" class="btn" onclick="saveOrderData()">Lưu Đơn Hàng</button>
                 </form>
             </div>
         </div>
@@ -275,9 +274,7 @@
         <div id="list" class="tab-content">
             <div class="card">
                 <h2>Danh Sách Đơn Hàng Theo Ngày Lấy</h2>
-                <div id="orderContainerByDate">
-                    <!-- Danh sách nhóm theo ngày sẽ load ở đây -->
-                </div>
+                <div id="orderContainerByDate"></div>
             </div>
         </div>
 
@@ -291,9 +288,7 @@
                         <input type="month" id="reportMonthInput" onchange="renderReport()">
                     </div>
                 </div>
-                <div id="reportContent">
-                    <!-- Nội dung báo cáo -->
-                </div>
+                <div id="reportContent"></div>
             </div>
         </div>
 
@@ -351,22 +346,18 @@
 
         let ordersData = {};
 
-        // Khởi tạo giao diện và các sự kiện chuyển tab
         document.addEventListener('DOMContentLoaded', () => {
-            // Set mặc định tháng hiện tại cho báo cáo
             const now = new Date();
             const yearMonth = now.toISOString().slice(0, 7);
             document.getElementById('reportMonthInput').value = yearMonth;
             document.getElementById('exportMonthInput').value = yearMonth;
 
-            // Load theme đã lưu nếu có
             const savedPrimary = localStorage.getItem('primaryColor');
             const savedBg = localStorage.getItem('bgColor');
             if (savedPrimary && savedBg) {
                 applyTheme(savedPrimary, savedBg);
             }
 
-            // Chuyển tab
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const target = btn.getAttribute('data-target');
@@ -378,7 +369,6 @@
             });
         });
 
-        // Đổi màu theme
         function changeTheme(primary, bg) {
             applyTheme(primary, bg);
             localStorage.setItem('primaryColor', primary);
@@ -390,7 +380,6 @@
             document.documentElement.style.setProperty('--bg-color', bg);
         }
 
-        // Chuyển đổi file ảnh sang Base64 để lưu trữ
         function previewImage(event) {
             const file = event.target.files[0];
             if (file) {
@@ -405,7 +394,6 @@
             }
         }
 
-        // Tự động tính toán nhân 1.000 tiền tệ
         function calculateTotal() {
             let price = (Number(document.getElementById('cakePrice').value) || 0) * 1000;
             let deposit = (Number(document.getElementById('deposit').value) || 0) * 1000;
@@ -419,7 +407,6 @@
             document.getElementById('displayTotalText').innerText = `${total.toLocaleString('vi-VN')} đ`;
         }
 
-        // Lắng nghe dữ liệu Firebase Realtime Database
         database.ref('orders').on('value', (snapshot) => {
             ordersData = snapshot.val() || {};
             document.getElementById('headerStatus').innerText = 'Trực tuyến (Đã đồng bộ)';
@@ -429,24 +416,33 @@
             document.getElementById('headerStatus').innerText = 'Lỗi kết nối cơ sở dữ liệu!';
         });
 
-        // Lưu hoặc Cập nhật đơn hàng
-        function saveOrder(e) {
-            e.preventDefault();
+        // Thay đổi cơ chế bấm nút trực tiếp bằng hàm JavaScript để tránh bị chặn form
+        function saveOrderData() {
+            const cusName = document.getElementById('cusName').value.trim();
+            const cusPhone = document.getElementById('cusPhone').value.trim();
+            const cakePrice = document.getElementById('cakePrice').value;
+            const pickupDateTime = document.getElementById('pickupDateTime').value;
+
+            // Kiểm tra các trường bắt buộc
+            if (!cusName || !cusPhone || !cakePrice || !pickupDateTime) {
+                alert('Vui lòng điền đầy đủ các thông tin bắt buộc: Tên khách hàng, Số điện thoại, Giá bánh và Thời gian lấy bánh!');
+                return;
+            }
+
             const id = document.getElementById('orderId').value;
-            
-            const rawPrice = Number(document.getElementById('cakePrice').value) || 0;
+            const rawPrice = Number(cakePrice) || 0;
             const rawDeposit = Number(document.getElementById('deposit').value) || 0;
             const rawFee = Number(document.getElementById('otherFee').value) || 0;
 
             const orderData = {
-                cusName: document.getElementById('cusName').value,
-                cusPhone: document.getElementById('cusPhone').value,
+                cusName: cusName,
+                cusPhone: cusPhone,
                 cakeSize: document.getElementById('cakeSize').value,
                 cakeContent: document.getElementById('cakeContent').value,
                 cakePrice: rawPrice * 1000,
                 deposit: rawDeposit * 1000,
                 otherFee: rawFee * 1000,
-                pickupDateTime: document.getElementById('pickupDateTime').value,
+                pickupDateTime: pickupDateTime,
                 cakeImage: document.getElementById('cakeImageBase64').value || '',
                 note: document.getElementById('note').value,
                 orderStatus: document.getElementById('orderStatus').value
@@ -458,6 +454,8 @@
                         alert('Cập nhật đơn hàng thành công!');
                         resetForm();
                         switchTabDirect('list');
+                    } else {
+                        alert('Lỗi khi cập nhật: ' + error.message);
                     }
                 });
             } else {
@@ -466,6 +464,8 @@
                         alert('Tạo đơn hàng mới thành công!');
                         resetForm();
                         switchTabDirect('list');
+                    } else {
+                        alert('Lỗi khi tạo đơn: ' + error.message);
                     }
                 });
             }
@@ -479,7 +479,6 @@
             if (targetBtn) targetBtn.classList.add('active');
         }
 
-        // Hiển thị danh sách đơn theo ngày
         function renderOrderListByDate() {
             const container = document.getElementById('orderContainerByDate');
             container.innerHTML = '';
@@ -490,7 +489,6 @@
                 return;
             }
 
-            // Nhóm đơn hàng theo ngày lấy bánh (YYYY-MM-DD)
             let grouped = {};
             keys.forEach(k => {
                 const item = ordersData[k];
@@ -501,7 +499,6 @@
                 }
             });
 
-            // Sắp xếp ngày tăng dần
             let sortedDates = Object.keys(grouped).sort();
 
             sortedDates.forEach(dateStr => {
@@ -528,7 +525,6 @@
                             <tbody>
                 `;
 
-                // Sắp xếp giờ lấy trong cùng ngày
                 grouped[dateStr].sort((a, b) => a.pickupDateTime.localeCompare(b.pickupDateTime));
 
                 grouped[dateStr].forEach(item => {
@@ -563,7 +559,6 @@
             });
         }
 
-        // Chỉnh sửa đơn
         function editOrder(id) {
             const item = ordersData[id];
             document.getElementById('orderId').value = id;
@@ -594,14 +589,12 @@
             switchTabDirect('create');
         }
 
-        // Xóa đơn
         function deleteOrder(id) {
             if (confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
                 database.ref('orders/' + id).remove();
             }
         }
 
-        // Reset form
         function resetForm() {
             document.getElementById('orderForm').reset();
             document.getElementById('orderId').value = '';
@@ -610,9 +603,8 @@
             calculateTotal();
         }
 
-        // Báo cáo doanh thu theo ngày và tháng
         function renderReport() {
-            const selectedMonth = document.getElementById('reportMonthInput').value; // YYYY-MM
+            const selectedMonth = document.getElementById('reportMonthInput').value;
             const keys = Object.keys(ordersData);
 
             let totalMonthRev = 0;
@@ -623,8 +615,8 @@
             keys.forEach(k => {
                 const item = ordersData[k];
                 if (item.pickupDateTime && item.orderStatus !== 'Đã hủy') {
-                    let datePart = item.pickupDateTime.split('T')[0]; // YYYY-MM-DD
-                    let monthPart = datePart.slice(0, 7); // YYYY-MM
+                    let datePart = item.pickupDateTime.split('T')[0];
+                    let monthPart = datePart.slice(0, 7);
 
                     if (monthPart === selectedMonth) {
                         totalMonthOrders++;
@@ -678,13 +670,11 @@
             document.getElementById('reportContent').innerHTML = reportHtml;
         }
 
-        // Cấu hình hiển thị input chọn tháng xuất excel
         function toggleExportMonthInput() {
             const val = document.getElementById('exportType').value;
             document.getElementById('exportMonthGroup').style.display = (val === 'month') ? 'block' : 'none';
         }
 
-        // Xuất Excel theo tháng hoặc tất cả
         function exportToExcel() {
             const exportType = document.getElementById('exportType').value;
             const selectedMonth = document.getElementById('exportMonthInput').value;
